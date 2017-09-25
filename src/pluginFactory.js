@@ -20,6 +20,7 @@ const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
 // baseLedger
 
 function pluginMaker (version, config) {
+  let myPlugin
   if (version === '17q3') {
     const peerLedger = new PeerLedger({
       prefix: config.baseLedger + config.name + '.',
@@ -37,9 +38,9 @@ function pluginMaker (version, config) {
       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
       frog.handleMessage(obj)
     })
-    return peerLedger.getMyPlugin()
+    myPlugin = peerLedger.getMyPlugin()
   } else {
-    return new Plugin17q4({
+    myPlugin = new Plugin17q4({
       socket: config.socket,
       prefix: config.baseLedger + config.name + '.',
       info: {
@@ -51,6 +52,8 @@ function pluginMaker (version, config) {
       }
     })
   }
+  myPlugin.isPrivate = true // means voucher will not promote this plugin's account as a connector
+  return myPlugin
 }
 
 // 0: '', 1: 'api', 2: version, 3: name (17q3 only), 4: token (17q3 only)
@@ -107,10 +110,10 @@ function getLetsEncryptServers (domain) {
   })
 }
 
-function PluginFactory (config, otherPlugins) {
-  this.plugins = otherPlugins
+function PluginFactory (config, onPlugin) {
   this.serversToClose = []
   this.config = config
+  this.onPlugin = onPlugin
   // this.myBaseUrl
 }
 
@@ -158,7 +161,7 @@ PluginFactory.prototype = {
           console.log('plugin instantiated')
           plugin.connect().then(() => {
             console.log('plugin connected', plugin.getAccount())
-            this.plugins[plugin.getAccount()] = plugin
+            this.onPlugin(plugin.getAccount(), plugin)
           }, (err) => {
             console.error('could not connect plugin for ' + httpReq.url + ': ' + err.message)
           })
@@ -174,10 +177,6 @@ PluginFactory.prototype = {
         server.close(resolve)
       })
     }))
-  },
-
-  getPlugin (ledgerPrefix) {
-    return this.plugins[ledgerPrefix]
   }
 }
 
