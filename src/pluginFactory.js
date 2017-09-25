@@ -41,7 +41,6 @@ function pluginMaker (version, config) {
     myPlugin = peerLedger.getMyPlugin()
   } else {
     myPlugin = new Plugin17q4({
-      socket: config.socket,
       prefix: config.baseLedger + config.name + '.',
       info: {
         currencyCode: 'USD',
@@ -51,6 +50,7 @@ function pluginMaker (version, config) {
         maxBalance: Infinity
       }
     })
+    myPlugin.addSocket(config.socket)
   }
   myPlugin.isPrivate = true // means voucher will not promote this plugin's account as a connector
   return myPlugin
