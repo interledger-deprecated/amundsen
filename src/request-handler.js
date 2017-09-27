@@ -4,6 +4,10 @@ class RequestHandler {
   }
 
   onPlugin(prefix) {
+    this.main.getPlugin(prefix).registerRequestHandler(msg => {
+      console.log('handling request!', prefix, msg)
+      return Promise.resolve()
+    })
   }
 }
 

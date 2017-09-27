@@ -29,7 +29,7 @@ function pluginMaker (version, config) {
       connectors: [ config.baseLedger + config.name + '.me' ], // the peer should send to me
       minBalance: 0, // 17q3 balance protocol doesn't support negative balances
       maxBalance: Infinity
-    }, config.peerInitialBalance)
+    }, config.initialPeerBalance)
     const frog = new BtpFrog(peerLedger.getPlugin('peer'), (obj) => {
       const msg = BtpPacket.serialize(obj, BtpPacket.BTP_VERSION_ALPHA)
       config.socket.send(msg)
@@ -169,7 +169,7 @@ PluginFactory.prototype = {
           console.log('plugin instantiated')
           plugin.connect().then(() => {
             console.log('plugin connected', plugin.getAccount())
-            this.onPlugin(plugin.getAccount(), plugin)
+            this.onPlugin(plugin)
           }, (err) => {
             console.error('could not connect plugin for ' + httpReq.url + ': ' + err.message)
           })

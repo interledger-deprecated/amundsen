@@ -49,7 +49,7 @@ class LedgerPlugin extends EventEmitter {
   }
 
   _getOtherPlugin () {
-    return this.ledger.getPlugin(this._getOtherRelativeAccount)
+    return this.ledger.getPlugin(this._getOtherRelativeAccount())
   }
 
   // methods that don't affect the ledger or the other peer:
@@ -140,8 +140,8 @@ class LedgerPlugin extends EventEmitter {
       this.balance.add(amountBigNum)
       return Promise.reject(new NamedError('insufficient balance'))
     }
-    this._getOtherPlugin().emit('incomingprepare', transfer)
-    this.emit('outgoingprepare', transfer)
+    this._getOtherPlugin().emit('incoming_prepare', transfer)
+    this.emit('outgoing_prepare', transfer)
     setTimeout(() => {
       if (this.ledgertransfers[transfer.id].fulfillment ||
           this.ledgertransfers[transfer.id].rejected) {
@@ -149,9 +149,10 @@ class LedgerPlugin extends EventEmitter {
       }
       this.ledgertransfers[transfer.id].rejected = true
       this.balance.add(amountBigNum)
-      this._getOtherPlugin().emit('incomingcancel', transfer)
-      this.emit('outgoingcancel', transfer)
+      this._getOtherPlugin().emit('incoming_cancel', transfer)
+      this.emit('outgoing_cancel', transfer)
     }, expiresDate - new Date())
+    return Promise.resolve(null)
   }
 
   sendRequest (request) {
@@ -189,8 +190,8 @@ class LedgerPlugin extends EventEmitter {
       this._getOtherPlugin().balance.add(this.ledger.transfers[transferId].amount)
       return Promise.reject(new NamedError('insufficient balance'))
     }
-    this._getOtherPlugin().emit('outgoingfulfill', this.ledger.transfers[transferId])
-    this.emit('incomingfulfill', this.ledger.transfers[transferId])
+    this._getOtherPlugin().emit('outgoing_fulfill', this.ledger.transfers[transferId])
+    this.emit('incoming_fulfill', this.ledger.transfers[transferId])
     return Promise.resolve()
   }
 
@@ -204,8 +205,8 @@ class LedgerPlugin extends EventEmitter {
     this.ledger.transfers[transferId].rejected = true
     this.ledger.cancel(transferId)
     this._getOtherPlugin().balance.add(this.ledger.transfers[transferId].amount)
-    this._getOtherPlugin().emit('outgoingreject', this.ledger.transfers[transferId])
-    this.emit('incomingreject', this.ledger.transfers[transferId])
+    this._getOtherPlugin().emit('outgoing_reject', this.ledger.transfers[transferId])
+    this.emit('incoming_reject', this.ledger.transfers[transferId])
     return Promise.resolve()
   }
 

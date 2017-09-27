@@ -202,92 +202,92 @@ describe('Vouching System', () => {
       this.client1.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_ALPHA))
     })
 
-    it('should deliver to dummy ledger (17q4)', function (done) {
-      let acked = false
-      this.client2.on('message', (msg) => {
-        const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
-        console.log('client2 sees', obj)
-        if (obj.type === BtpPacket.TYPE_RESPONSE) {
-          acked = true
-        } else {
-          assert.equal(acked, true)
-          assert.deepEqual(this.plugin.transfers[0], {
-            id: this.plugin.transfers[0].id,
-            from: 'test.dummy.dummy-account',
-            to: 'test.dummy.client2',
-            ledger: 'test.dummy.',
-            amount: '1234',
-            ilp: packet.toString('base64'),
-            noteToSelf: {},
-            executionCondition: condition.toString('base64'),
-            expiresAt: this.plugin.transfers[0].expiresAt,
-            custom: {}
-          })
-          assert.equal(this.testnetNode.getPlugin('downstream_' + this.client1.config.btp.name).btp.balance, 8765)
-          assert.equal(this.testnetNode.peers('downstream_' + this.client2.config.btp.name).btp.balance, 10000)
-          done()
-        }
-      })
-      this.client2.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_1))
-    })
-
-    it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
-      this.plugin.successCallback = (transferId, fulfillmentBase64) => {
-        done(new Error('should not have succeeded'))
-      }
-      this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
-        assert.equal(rejectionReasonObj.code, 'L53')
-        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
-        done()
-      }
-      this.plugin.handlers.incoming_prepare(this.lpiTransferTooBig)
-    })
-
-    it('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
-      this.client1.on('message', (msg) => {
-        const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
-        console.log('client1 sees', obj)
-        if (obj.type === BtpPacket.TYPE_PREPARE) {
-          this.client2.send(btpAcknowledge(obj.requestId, BtpPacket.BTP_VERSION_ALPHA))
-          this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, BtpPacket.BTP_VERSION_ALPHA))
-        }
-      })
-
-      this.plugin.successCallback = (transferId, fulfillmentBase64) => {
-        assert.equal(transferId, this.lpiTransferTo1.id)
-        assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 11234)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
-        done()
-      }
-      this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
-        done(rejectionReasonObj)
-      }
-      this.plugin.handlers.incoming_prepare(this.lpiTransferTo1)
-    })
-
-    it('should accept from vouched wallets on dummy ledger (17q4)', function (done) {
-      this.client2.on('message', (msg) => {
-        const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
-        console.log('client2 sees', obj)
-        if (obj.type === BtpPacket.TYPE_PREPARE) {
-          this.client2.send(btpAcknowledge(obj.requestId, BtpPacket.BTP_VERSION_1))
-          this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, BtpPacket.BTP_VERSION_1))
-        }
-      })
-
-      this.plugin.successCallback = (transferId, fulfillmentBase64) => {
-        assert.equal(transferId, this.lpiTransferTo2.id)
-        assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
-        done()
-      }
-      this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
-        done(rejectionReasonObj)
-      }
-      this.plugin.handlers.incoming_prepare(this.lpiTransferTo2)
-    })
+   //   it('should deliver to dummy ledger (17q4)', function (done) {
+   //     let acked = false
+   //     this.client2.on('message', (msg) => {
+   //       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
+   //       console.log('client2 sees', obj)
+   //       if (obj.type === BtpPacket.TYPE_RESPONSE) {
+   //         acked = true
+   //       } else {
+   //         assert.equal(acked, true)
+   //         assert.deepEqual(this.plugin.transfers[0], {
+   //           id: this.plugin.transfers[0].id,
+   //           from: 'test.dummy.dummy-account',
+   //           to: 'test.dummy.client2',
+   //           ledger: 'test.dummy.',
+   //           amount: '1234',
+   //           ilp: packet.toString('base64'),
+   //           noteToSelf: {},
+   //           executionCondition: condition.toString('base64'),
+   //           expiresAt: this.plugin.transfers[0].expiresAt,
+   //           custom: {}
+   //         })
+   //         assert.equal(this.testnetNode.getPlugin('downstream_' + this.client1.config.btp.name).btp.balance, 8765)
+   //         assert.equal(this.testnetNode.peers('downstream_' + this.client2.config.btp.name).btp.balance, 10000)
+   //         done()
+   //       }
+   //     })
+   //     this.client2.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_1))
+   //   })
+      
+   //   it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
+   //     this.plugin.successCallback = (transferId, fulfillmentBase64) => {
+   //       done(new Error('should not have succeeded'))
+   //     }
+   //     this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+   //       assert.equal(rejectionReasonObj.code, 'L53')
+   //       assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
+   //       assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
+   //       done()
+   //     }
+   //     this.plugin.handlers.incoming_prepare(this.lpiTransferTooBig)
+   //   })
+      
+   //   it('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
+   //     this.client1.on('message', (msg) => {
+   //       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
+   //       console.log('client1 sees', obj)
+   //       if (obj.type === BtpPacket.TYPE_PREPARE) {
+   //         this.client2.send(btpAcknowledge(obj.requestId, BtpPacket.BTP_VERSION_ALPHA))
+   //         this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, BtpPacket.BTP_VERSION_ALPHA))
+   //       }
+   //     })
+      
+   //     this.plugin.successCallback = (transferId, fulfillmentBase64) => {
+   //       assert.equal(transferId, this.lpiTransferTo1.id)
+   //       assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
+   //       assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 11234)
+   //       assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
+   //       done()
+   //     }
+   //     this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+   //       done(rejectionReasonObj)
+   //     }
+   //     this.plugin.handlers.incoming_prepare(this.lpiTransferTo1)
+   //   })
+      
+   //   it('should accept from vouched wallets on dummy ledger (17q4)', function (done) {
+   //     this.client2.on('message', (msg) => {
+   //       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
+   //       console.log('client2 sees', obj)
+   //       if (obj.type === BtpPacket.TYPE_PREPARE) {
+   //         this.client2.send(btpAcknowledge(obj.requestId, BtpPacket.BTP_VERSION_1))
+   //         this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, BtpPacket.BTP_VERSION_1))
+   //       }
+   //     })
+      
+   //     this.plugin.successCallback = (transferId, fulfillmentBase64) => {
+   //       assert.equal(transferId, this.lpiTransferTo2.id)
+   //       assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
+   //       assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
+   //       assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
+   //       done()
+   //     }
+   //     this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+   //       done(rejectionReasonObj)
+   //     }
+   //     this.plugin.handlers.incoming_prepare(this.lpiTransferTo2)
+   //   })
   })
 })
