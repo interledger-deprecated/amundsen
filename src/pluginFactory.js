@@ -26,11 +26,11 @@ function pluginMaker (version, config) {
       prefix: config.baseLedger + config.name + '.',
       currencyCode: 'USD',
       currencyScale: 9,
-      connectors: [ config.baseLedger + 'connector' ],
+      connectors: [ config.baseLedger + config.name + '.me' ], // the peer should send to me
       minBalance: 0, // 17q3 balance protocol doesn't support negative balances
       maxBalance: Infinity
     }, config.peerInitialBalance)
-    const frog = new BtpFrog(peerLedger.getPeerPlugin(), (obj) => {
+    const frog = new BtpFrog(peerLedger.getPlugin('peer'), (obj) => {
       const msg = BtpPacket.serialize(obj, BtpPacket.BTP_VERSION_ALPHA)
       config.socket.send(msg)
     }, BtpPacket.BTP_VERSION_ALPHA)
@@ -38,8 +38,9 @@ function pluginMaker (version, config) {
       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
       frog.handleMessage(obj)
     })
-    myPlugin = peerLedger.getMyPlugin()
+    myPlugin = peerLedger.getPlugin('me')
   } else {
+    const store = {}
     myPlugin = new Plugin17q4({
       prefix: config.baseLedger + config.name + '.',
       info: {
@@ -48,6 +49,13 @@ function pluginMaker (version, config) {
         connectors: [ config.baseLedger + 'connector' ],
         minBalance: 0, // 17q3 balance protocol doesn't support negative balances
         maxBalance: Infinity
+      },
+      incomingSecret: '',
+      maxBalance: '1000000000',
+      _store: {
+        get: (k) => store[k],
+        put: (k, v) => { store[k] = v },
+        del: (k) => delete store[k]
       }
     })
     myPlugin.addSocket(config.socket)

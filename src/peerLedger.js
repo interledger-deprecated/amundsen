@@ -40,6 +40,18 @@ class LedgerPlugin extends EventEmitter {
     this.balance = initialBalanceBigNum
   }
 
+  _getOtherRelativeAccount () {
+    return this.ledger.getOtherAccount(this.account)
+  }
+
+  _getOtherAccount () {
+    return this.getInfo().prefix + this._getOtherRelativeAccount()
+  }
+
+  _getOtherPlugin () {
+    return this.ledger.getPlugin(this._getOtherRelativeAccount)
+  }
+
   // methods that don't affect the ledger or the other peer:
   connect () {
     this.isConnected = true
@@ -77,11 +89,30 @@ class LedgerPlugin extends EventEmitter {
     return Promise.reject(new NamedError('transfer not found'))
   }
 
+//{ id: '515cba4e-cbe5-4bf2-b4f2-a81706d68214',
+//  from: 'test.amundsen.client1.peer',
+//  to: 'test.amundsen.client1.peer',
+//  ledger: 'test.amundsen.client1.',
+//  amount: '1235',
+//  ilp: 'ASAAAAAAAAAE0hV0ZXN0LmR1bW15LmNsaWVudDIuaGkAAA',
+//  noteToSelf: {},
+//  executionCondition: 'uqExnZ5hcSozTw6c6gMGnzdrN3yMuAbxbIpDV7eHdWA',
+//  expiresAt: '2017-09-27T13:10:55.622Z',
+//  custom: {} }
+
   // methods that affect the ledger and the other peer:
   sendTransfer (transfer) {
+    console.log('sendTransfer in peerLedger!', (transfer.ledger !== this.getInfo().prefix),
+        (transfer.from !== this.getAccount()),
+        transfer.to, this._getOtherAccount(),
+        typeof transfer.amount !== 'string',
+        typeof transfer.executionCondition !== 'string',
+        typeof transfer.expiresAt !== 'string',
+        typeof transfer.ilp !== 'string')
+
     if ((transfer.ledger !== this.getInfo().prefix) ||
-        (transfer.from !== this.getAcccount()) ||
-        (transfer.to !== this.getOtherPeer().getAcccount()) ||
+        (transfer.from !== this.getAccount()) ||
+        (transfer.to !== this._getOtherAccount()) ||
         typeof transfer.amount !== 'string' ||
         typeof transfer.executionCondition !== 'string' ||
         typeof transfer.expiresAt !== 'string' ||
@@ -102,13 +133,14 @@ class LedgerPlugin extends EventEmitter {
     }
 
     this.ledger.transfers[transfer.id] = transfer
-    this.balance.substract(amountBigNum)
+    console.log('subtracting', this.balance, amountBigNum)
+    this.balance.subtract(amountBigNum)
     if (this.balance.lt(this.ledger.info.minBalance)) {
       this.ledger.transfers[transfer.id].rejected = true
       this.balance.add(amountBigNum)
       return Promise.reject(new NamedError('insufficient balance'))
     }
-    this.getOtherPlugin().emit('incomingprepare', transfer)
+    this._getOtherPlugin().emit('incomingprepare', transfer)
     this.emit('outgoingprepare', transfer)
     setTimeout(() => {
       if (this.ledgertransfers[transfer.id].fulfillment ||
@@ -117,16 +149,16 @@ class LedgerPlugin extends EventEmitter {
       }
       this.ledgertransfers[transfer.id].rejected = true
       this.balance.add(amountBigNum)
-      this.getOtherPlugin().emit('incomingcancel', transfer)
+      this._getOtherPlugin().emit('incomingcancel', transfer)
       this.emit('outgoingcancel', transfer)
     }, expiresDate - new Date())
   }
 
   sendRequest (request) {
-    if (typeof this.getOtherPlugin().requestHandler !== 'function') {
+    if (typeof this._getOtherPlugin().requestHandler !== 'function') {
       return Promise.reject(new NamedError('no subscriptions'))
     }
-    return this.getOtherPlugin().requestHandler(request)
+    return this._getOtherPlugin().requestHandler(request)
   }
 
   fulfillCondition (transferId, fulfillment) {
@@ -153,11 +185,11 @@ class LedgerPlugin extends EventEmitter {
     if (this.balance.gt(this.ledger.info.maxBalance)) {
       this.ledger.transfers[transferId].rejected = true
       delete this.ledger.transfer[transferId].fulfillment
-      this.balance.substract(this.ledger.transfers[transferId].amount)
-      this.getOtherPeer().balance.add(this.ledger.transfers[transferId].amount)
+      this.balance.subtract(this.ledger.transfers[transferId].amount)
+      this._getOtherPlugin().balance.add(this.ledger.transfers[transferId].amount)
       return Promise.reject(new NamedError('insufficient balance'))
     }
-    this.getOtherPlugin().emit('outgoingfulfill', this.ledger.transfers[transferId])
+    this._getOtherPlugin().emit('outgoingfulfill', this.ledger.transfers[transferId])
     this.emit('incomingfulfill', this.ledger.transfers[transferId])
     return Promise.resolve()
   }
@@ -171,8 +203,8 @@ class LedgerPlugin extends EventEmitter {
     }
     this.ledger.transfers[transferId].rejected = true
     this.ledger.cancel(transferId)
-    this.getOtherPeer().balance.add(this.ledger.transfers[transferId].amount)
-    this.getOtherPlugin().emit('outgoingreject', this.ledger.transfers[transferId])
+    this._getOtherPlugin().balance.add(this.ledger.transfers[transferId].amount)
+    this._getOtherPlugin().emit('outgoingreject', this.ledger.transfers[transferId])
     this.emit('incomingreject', this.ledger.transfers[transferId])
     return Promise.resolve()
   }
@@ -193,7 +225,7 @@ class LedgerPlugin extends EventEmitter {
 
 function PeerLedger (ledgerInfo, peerInitialBalance) {
   this.info = ledgerInfo
-  this.transactions = {}
+  this.transfers = {}
   this.plugins = {
     peer: new LedgerPlugin(this, 'peer', new BigNumber(peerInitialBalance), () => {
       return this.plugins.me
@@ -205,11 +237,15 @@ function PeerLedger (ledgerInfo, peerInitialBalance) {
 }
 
 PeerLedger.prototype = {
-  getMyPlugin () {
-    return this.plugins.me
+  getPlugin (name) {
+    return this.plugins[name]
   },
-  getPeerPlugin () {
-    return this.plugins.peer
+  getOtherAccount (name) {
+    if (name === 'me') {
+      return 'peer'
+    } else {
+      return 'me'
+    }
   }
 }
 
