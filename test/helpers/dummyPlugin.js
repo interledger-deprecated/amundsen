@@ -1,7 +1,8 @@
 function DummyPlugin (config) {
   this.handlers = {}
   this.transfers = []
-  this.prefix = config.prefix
+  this.config = config
+
 }
 
 DummyPlugin.prototype = {
@@ -11,15 +12,15 @@ DummyPlugin.prototype = {
   sendTransfer (transfer) {
     this.transfers.push(transfer)
     setTimeout(() => {
-      // console.log('dummy plugin fulfills!', transfer, this.fulfillment)
-      this.handlers.outgoing_fulfill(transfer, this.fulfillment.toString('base64'))
+      console.log('dummy plugin fulfills!', transfer, this.fulfillment)
+      this.handlers.outgoing_fulfill(transfer, this.config.fulfillment.toString('base64'))
     }, 0)
     return Promise.resolve(null)
   },
   connect () { return Promise.resolve() },
   disconnect () {},
-  getAccount () { return this.prefix + 'dummy-account' },
-  getInfo () { return { prefix: this.prefix } },
+  getAccount () { return this.config.prefix + 'dummy-account' },
+  getInfo () { return { prefix: this.config.prefix } },
   fulfillCondition (transferId, conditionBase64) {
     return Promise.resolve(this.successCallback(transferId, conditionBase64))
   },

@@ -18,14 +18,39 @@ function btpMessagePacket(protocolName, contentType, data, btpVersion) {
   }, btpVersion)
 }
 
+function btpAuthMessage(username, token, btpVersion) {
+  return BtpPacket.serialize({
+    type: BtpPacket.TYPE_MESSAGE,
+    requestId: 0,
+    data: {
+      protocolData: [
+        { protocolName: 'auth', contentType: BtpPacket.MIME_TEXT_PLAIN_UTF8, data: Buffer.from([]) },
+        { protocolName: 'auth_username', contentType: BtpPacket.MIME_TEXT_PLAIN_UTF8, data: Buffer.from(username, 'utf8') },
+        { protocolName: 'auth_token', contentType: BtpPacket.MIME_TEXT_PLAIN_UTF8, data: Buffer.from(token, 'utf8') }
+      ]
+    }
+  }, btpVersion)
+}
+
+function btpPreparePacket(data, btpVersion) {
+  return BtpPacket.serialize({
+    type: BtpPacket.TYPE_PREPARE,
+    requestId: 2,
+    data
+  }, btpVersion)
+}
+
 describe('Vouching System', () => {
   beforeEach(function () {
-    this.testnetNode = new TestnetNode()
-    return this.testnetNode.addPlugin(new PluginDummy({
+    this.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+    this.condition = sha256(this.fulfillment)
+    this.plugin = new PluginDummy({
       prefix: 'test.dummy.',
-      connector: 'test.dummy.connie'
-    })).then(() => {
-      this.testnetNode.plugins['test.dummy.'].fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+      connector: 'test.dummy.connie',
+      fulfillment: this.fulfillment
+    })
+    this.testnetNode = new TestnetNode()
+    return this.testnetNode.addPlugin(this.plugin).then(() => {
       return this.testnetNode.start()
     })
   })
@@ -33,22 +58,47 @@ describe('Vouching System', () => {
     return this.testnetNode.stop()
   })
 
-  describe('two clients (17q3)', () => {
+  describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new WebSocket('ws://localhost:8000/client1/foo')
-      this.client2 = new WebSocket('ws://localhost:8000/client2/bar')
+      this.client1 = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
+      this.client2 = new WebSocket('ws://localhost:8000/api/17q4')
+      this.transfer = {
+        transferId: uuid(),
+        amount: '1235',
+        executionCondition: this.condition,
+        expiresAt: new Date(new Date().getTime() + 100000),
+        protocolData: [ {
+          protocolName: 'ilp',
+          contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
+          data: IlpPacket.serializeIlpPayment({
+            amount: '1234',
+            account: 'test.dummy.client2.hi'
+          })
+        } ]
+      }
       return Promise.all([
         new Promise(resolve => this.client1.on('open', resolve)),
         new Promise(resolve => this.client2.on('open', resolve)),
       ]).then(() => {
+        return this.client2.send(btpAuthMessage('client2', 'bar'))
+      }).then(() => {
         console.log('both clients open!')
-        return this.client1.send(btpMessagePacket(
-            'vouch',
-            BtpPacket.MIME_TEXT_PLAIN_UTF8,
-            Buffer.concat([
-              Buffer.from([0, 'test.dummy.client1'.length]),
-              Buffer.from('test.dummy.client1', 'ascii')
-            ]), BtpPacket.BTP_VERSION_ALPHA))
+        return Promise.all([
+          this.client1.send(btpMessagePacket(
+              'vouch',
+              BtpPacket.MIME_TEXT_PLAIN_UTF8,
+              Buffer.concat([
+                Buffer.from([0, 'test.dummy.client1'.length]),
+                Buffer.from('test.dummy.client1', 'ascii')
+              ]), BtpPacket.BTP_VERSION_ALPHA)),
+          this.client2.send(btpMessagePacket(
+              'vouch',
+              BtpPacket.MIME_TEXT_PLAIN_UTF8,
+              Buffer.concat([
+                Buffer.from([0, 'test.dummy.client1'.length]),
+                Buffer.from('test.dummy.client1', 'ascii')
+              ]), BtpPacket.BTP_VERSION_1))
+        ])
       })
     })
     afterEach(function () {
@@ -56,41 +106,63 @@ describe('Vouching System', () => {
       return Promise.all([ this.client1.close(), this.client2.close() ])
     })
 
-    it('should deliver to dummy ledger', function () {
-      const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
-      const condition = sha256(fulfillment)
+    it('should deliver to dummy ledger (17q3)', function (done) {
+      let acked = false
+      this.client1.on('message', (msg) => {
+        const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
+        console.log('client1 sees', obj)
+        if (obj.type === BtpPacket.TYPE_ACK) {
+          acked = true
+        } else {
+          assert.equal(acked, true)
+          assert.deepEqual(this.plugin.transfers[0], {
+            id: this.plugin.transfers[0].id,
+            from: 'test.dummy.dummy-account',
+            to: 'test.dummy.client2',
+            ledger: 'test.dummy.',
+            amount: '1234',
+            ilp: packet.toString('base64'),
+            noteToSelf: {},
+            executionCondition: condition.toString('base64'),
+            expiresAt: this.plugin.transfers[0].expiresAt,
+            custom: {}
+          })
+          // console.log(this.client1)
+          assert.equal(this.testnetNode.getPlugin('downstream_' + this.client1.config.btp.name).btp.balance, 8765)
+          assert.equal(this.testnetNode.peers('downstream_' + this.client2.config.btp.name).btp.balance, 10000)
+          done()
+        }
+      })
+      this.client1.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_ALPHA))
+    })
 
-      // console.log('setting up test', fulfillment, condition)
-      const packet = IlpPacket.serializeIlpPayment({
-        amount: '1234',
-        account: 'test.dummy.client2.hi'
+    it('should deliver to dummy ledger (17q4)', function (done) {
+      let acked = false
+      this.client2.on('message', (msg) => {
+        const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
+        console.log('client2 sees', obj)
+        if (obj.type === BtpPacket.TYPE_ACK) {
+          acked = true
+        } else {
+          assert.equal(acked, true)
+          assert.deepEqual(this.plugin.transfers[0], {
+            id: this.plugin.transfers[0].id,
+            from: 'test.dummy.dummy-account',
+            to: 'test.dummy.client2',
+            ledger: 'test.dummy.',
+            amount: '1234',
+            ilp: packet.toString('base64'),
+            noteToSelf: {},
+            executionCondition: condition.toString('base64'),
+            expiresAt: this.plugin.transfers[0].expiresAt,
+            custom: {}
+          })
+          assert.equal(this.testnetNode.getPlugin('downstream_' + this.client1.config.btp.name).btp.balance, 8765)
+          assert.equal(this.testnetNode.peers('downstream_' + this.client2.config.btp.name).btp.balance, 10000)
+          done()
+        }
       })
-      this.testnetNode.peers.ledger_dummy.plugin.fulfillment = fulfillment
-      const transfer = {
-        // transferId will be added  by Peer#conditional(transfer, protocolData)
-        amount: 1235,
-        executionCondition: condition,
-        expiresAt: new Date(new Date().getTime() + 100000)
-      }
-      // console.log('test prepared!', transfer, this.testnetNode.peers.ledger_dummy.plugin)
-      return this.client1.peers.upstream_wslocalhost8000.interledgerPayment(transfer, packet).then(result => {
-        assert.deepEqual(result, fulfillment)
-        assert.deepEqual(this.testnetNode.peers.ledger_dummy.plugin.transfers[0], {
-          id: this.testnetNode.peers.ledger_dummy.plugin.transfers[0].id,
-          from: 'test.dummy.dummy-account',
-          to: 'test.dummy.client2',
-          ledger: 'test.dummy.',
-          amount: '1234',
-          ilp: packet.toString('base64'),
-          noteToSelf: {},
-          executionCondition: condition.toString('base64'),
-          expiresAt: this.testnetNode.peers.ledger_dummy.plugin.transfers[0].expiresAt,
-          custom: {}
-        })
-        // console.log(this.client1)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 8765)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
-      })
+      this.client2.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_1))
     })
 
     it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
@@ -118,10 +190,10 @@ describe('Vouching System', () => {
         expiresAt: new Date(new Date().getTime() + 100000),
         custom: {}
       }
-      this.testnetNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+      this.testnetNode.getPlugin('test.dummy.').successCallback = (transferId, fulfillmentBase64) => {
         done(new Error('should not have succeeded'))
       }
-      this.testnetNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+      this.testnetNode.getPlugin('test.dummy.').failureCallback = (transferId, rejectionReasonObj) => {
         assert.equal(rejectionReasonObj.code, 'L53')
         assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
         assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)

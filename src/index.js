@@ -19,6 +19,7 @@ class TestnetNode {
     const prefix = plugin.getInfo().prefix
     return plugin.connect().then(() => {
       this.plugins[prefix] = plugin
+      console.log('adding plugin for', prefix)
       this.quoter.onPlugin(prefix)
       this.voucher.onPlugin(prefix)
       this.requestHandler.onPlugin(prefix)

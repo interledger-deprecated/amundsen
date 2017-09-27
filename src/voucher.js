@@ -10,6 +10,7 @@ class Voucher {
   }
 
   onPlugin (prefix) {
+    console.log('seeing new plugin for', prefix)
     const plugin = this.main.getPlugin(prefix)
     if (plugin.isPrivate) {
       const peerLedger = plugin.getInfo().prefix
