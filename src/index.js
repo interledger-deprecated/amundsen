@@ -10,14 +10,14 @@ class TestnetNode {
   constructor () {
     this.plugins = {}
     this.fulfillments = {}
-    this.quoter = new Quoter()
-    this.voucher = new Voucher()
+    this.quoter = new Quoter(this)
+    this.voucher = new Voucher(this)
     this.requestHandler = new RequestHandler(this)
     this.transferHandler = new TransferHandler(this)
   }
   addPlugin (plugin) {
     const prefix = plugin.getInfo().prefix
-    return plugin.connect.then(() => {
+    return plugin.connect().then(() => {
       this.plugins[prefix] = plugin
       this.quoter.onPlugin(prefix)
       this.voucher.onPlugin(prefix)
@@ -25,6 +25,11 @@ class TestnetNode {
       this.transferHandler.onPlugin(prefix)
     })
   }
+  getPlugin(prefix) {
+    return this.plugins[prefix]
+  }
+  start() { return Promise.resolve() }
+  stop() { return Promise.resolve() }
 }
 
 const testnetNode = new TestnetNode()
@@ -35,14 +40,14 @@ const pluginFactory = new PluginFactory({
 }, testnetNode.addPlugin.bind(testnetNode))
 
 Promise.all([
-  testnetNode.addPlugin(new PluginXrp({
+  testnetNode.addPlugin(new PluginEth({
     secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',
     account: '0x' + 'fa5b9836c46b6559be750b2f3c12657081fab858'.toUpperCase(),
     provider: 'http://localhost:8545',
     contract: '0x8B3FBD781096B51E68448C6E5B53B240F663199F',
     prefix: 'test.crypto.eth.rinkeby.'
   })),
-  testnetNode.addPlugin(PluginEth({
+  testnetNode.addPlugin(new PluginXrp({
     secret: 'shvKKDpRGMyKMUVn4EyMqCh9BQoP9',
     account: 'rhjRdyVNcaTNLXp3rkK4KtjCdUd9YEgrPs',
     server: 'wss://s.altnet.rippletest.net:51233',
@@ -52,3 +57,5 @@ Promise.all([
 ]).then(() => {
   console.log('started')
 })
+
+module.exports = TestnetNode

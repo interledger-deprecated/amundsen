@@ -1,53 +1,59 @@
 const assert = require('chai').assert
 const uuid = require('uuid/v4')
+const PluginDummy = require('./helpers/dummyPlugin')
+const WebSocket = require('ws')
 
 const IlpPacket = require('ilp-packet')
+const BtpPacket = require('btp-packet')
 
-const IlpNode = require('../src/index')
+const TestnetNode = require('../src/index')
 const sha256 = require('../src/sha256')
+
+function btpMessagePacket(protocolName, contentType, data, btpVersion) {
+  const protocolData = [ { protocolName, contentType, data } ]
+  return BtpPacket.serialize({
+    type: BtpPacket.TYPE_MESSAGE,
+    requestId: 1,
+    data: (btpVersion === BtpPacket.BTP_VERSION_ALPHA ? protocolData : { protocolData })
+  }, btpVersion)
+}
 
 describe('Vouching System', () => {
   beforeEach(function () {
-    this.ilpNode = new IlpNode({
-      btp: {
-        listen: 8000,
-        name: 'server',
-        initialBalancePerPeer: 10000,
-        upstreams: []
-      },
-      xrp: {
-        secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
-        server: 'wss://s.altnet.rippletest.net:51233',
-        prefix: 'test.crypto.xrp.'
-      },
-      dummy: {
-        prefix: 'test.dummy.',
-        connector: 'test.dummy.connie'
-      }
+    this.testnetNode = new TestnetNode()
+    return this.testnetNode.addPlugin(new PluginDummy({
+      prefix: 'test.dummy.',
+      connector: 'test.dummy.connie'
+    })).then(() => {
+      this.testnetNode.plugins['test.dummy.'].fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+      return this.testnetNode.start()
     })
-    this.ilpNode.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
-    return this.ilpNode.start()
   })
   afterEach(function () {
-    return this.ilpNode.stop()
+    return this.testnetNode.stop()
   })
 
-  describe('two clients', () => {
+  describe('two clients (17q3)', () => {
     beforeEach(function () {
-      this.client1 = new IlpNode({ btp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
-      this.client2 = new IlpNode({ btp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
-      // return this.client1.open('ws://localhost:8000/')
-      return Promise.all([ this.client1.start(), this.client2.start() ]).then(() => {
-        const packet = Buffer.concat([
-          Buffer.from([0, 'test.dummy.client1'.length]),
-          Buffer.from('test.dummy.client1', 'ascii')
-        ])
-        return this.client1.peers.upstream_wslocalhost8000.btp.unpaid('vouch', packet)
+      this.client1 = new WebSocket('ws://localhost:8000/client1/foo')
+      this.client2 = new WebSocket('ws://localhost:8000/client2/bar')
+      return Promise.all([
+        new Promise(resolve => this.client1.on('open', resolve)),
+        new Promise(resolve => this.client2.on('open', resolve)),
+      ]).then(() => {
+        console.log('both clients open!')
+        return this.client1.send(btpMessagePacket(
+            'vouch',
+            BtpPacket.MIME_TEXT_PLAIN_UTF8,
+            Buffer.concat([
+              Buffer.from([0, 'test.dummy.client1'.length]),
+              Buffer.from('test.dummy.client1', 'ascii')
+            ]), BtpPacket.BTP_VERSION_ALPHA))
       })
     })
     afterEach(function () {
       // return this.client1.close()
-      return Promise.all([ this.client1.stop(), this.client2.stop() ])
+      return Promise.all([ this.client1.close(), this.client2.close() ])
     })
 
     it('should deliver to dummy ledger', function () {
@@ -59,18 +65,18 @@ describe('Vouching System', () => {
         amount: '1234',
         account: 'test.dummy.client2.hi'
       })
-      this.ilpNode.peers.ledger_dummy.plugin.fulfillment = fulfillment
+      this.testnetNode.peers.ledger_dummy.plugin.fulfillment = fulfillment
       const transfer = {
         // transferId will be added  by Peer#conditional(transfer, protocolData)
         amount: 1235,
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
-      // console.log('test prepared!', transfer, this.ilpNode.peers.ledger_dummy.plugin)
+      // console.log('test prepared!', transfer, this.testnetNode.peers.ledger_dummy.plugin)
       return this.client1.peers.upstream_wslocalhost8000.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
-        assert.deepEqual(this.ilpNode.peers.ledger_dummy.plugin.transfers[0], {
-          id: this.ilpNode.peers.ledger_dummy.plugin.transfers[0].id,
+        assert.deepEqual(this.testnetNode.peers.ledger_dummy.plugin.transfers[0], {
+          id: this.testnetNode.peers.ledger_dummy.plugin.transfers[0].id,
           from: 'test.dummy.dummy-account',
           to: 'test.dummy.client2',
           ledger: 'test.dummy.',
@@ -78,12 +84,12 @@ describe('Vouching System', () => {
           ilp: packet.toString('base64'),
           noteToSelf: {},
           executionCondition: condition.toString('base64'),
-          expiresAt: this.ilpNode.peers.ledger_dummy.plugin.transfers[0].expiresAt,
+          expiresAt: this.testnetNode.peers.ledger_dummy.plugin.transfers[0].expiresAt,
           custom: {}
         })
         // console.log(this.client1)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 8765)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
+        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 8765)
+        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
       })
     })
 
@@ -112,16 +118,16 @@ describe('Vouching System', () => {
         expiresAt: new Date(new Date().getTime() + 100000),
         custom: {}
       }
-      this.ilpNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+      this.testnetNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         done(new Error('should not have succeeded'))
       }
-      this.ilpNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+      this.testnetNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         assert.equal(rejectionReasonObj.code, 'L53')
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
+        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
+        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
         done()
       }
-      this.ilpNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
+      this.testnetNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
     })
 
     it('should accept from vouched wallets on dummy ledger', function (done) {
@@ -149,17 +155,17 @@ describe('Vouching System', () => {
         expiresAt: new Date(new Date().getTime() + 100000),
         custom: {}
       }
-      this.ilpNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+      this.testnetNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         assert.equal(transferId, lpiTransfer.id)
         assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
+        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
+        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
         done()
       }
-      this.ilpNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+      this.testnetNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         done(rejectionReasonObj)
       }
-      this.ilpNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
+      this.testnetNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
     })
   })
 })
