@@ -146,7 +146,26 @@ describe('Vouching System', () => {
         new Promise(resolve => this.client1.on('open', resolve)),
         new Promise(resolve => this.client2.on('open', resolve)),
       ]).then(() => {
-        return this.client2.send(btpAuthMessage('client2', 'bar'))
+        // return this.client2.send(btpAuthMessage('client2', 'bar', BtpPacket.BTP_VERSION_1))
+        // Amundsen uses ilp-plugin-payment-channel-framework for the 17q4 endpoint which doesn't
+        // support auth_username yet, so have to send empty string.
+        // It does support checking an auth token, but only one for all peers, so have to set
+        // it to 'bar' which is hardcoded in src/pluginFactory.js for the moment:
+        return this.client2.send(btpAuthMessage('', 'bar', BtpPacket.BTP_VERSION_1))
+      }).then(() => {
+        return new Promise((resolve, reject) => {
+          this.client2.on('message', msg => {
+            const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
+            if (obj.requestId === 0 && obj.type === BtpPacket.TYPE_RESPONSE) {
+              console.log('auth success!', obj)
+              resolve()
+            }
+            if (obj.requestId === 0 && obj.type === BtpPacket.TYPE_ERROR) {
+              console.log('auth fail!', obj)
+              reject(new Error('BTP/1.0 auth failed'))
+            }
+          })
+        })
       }).then(() => {
         console.log('both clients open!')
         return Promise.all([

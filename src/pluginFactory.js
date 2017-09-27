@@ -21,6 +21,7 @@ const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
 
 function pluginMaker (version, config) {
   let myPlugin
+  let promise = Promise.resolve()
   if (version === '17q3') {
     const peerLedger = new PeerLedger({
       prefix: config.baseLedger + config.name + '.',
@@ -50,7 +51,7 @@ function pluginMaker (version, config) {
         minBalance: 0, // 17q3 balance protocol doesn't support negative balances
         maxBalance: Infinity
       },
-      incomingSecret: '',
+      incomingSecret: 'bar', // this is not going to work, of course, we don't know what token people connect to Amundsen with
       maxBalance: '1000000000',
       _store: {
         get: (k) => store[k],
@@ -58,10 +59,10 @@ function pluginMaker (version, config) {
         del: (k) => delete store[k]
       }
     })
-    myPlugin.addSocket(config.socket)
+    promise = myPlugin.addSocket(config.socket)
   }
   myPlugin.isPrivate = true // means voucher will not promote this plugin's account as a connector
-  return myPlugin
+  return promise.then(() => myPlugin)
 }
 
 // 0: '', 1: 'api', 2: version, 3: name (17q3 only), 4: token (17q3 only)
@@ -154,26 +155,27 @@ PluginFactory.prototype = {
         this.serversToClose.push(this.wss)
         this.wss.on('connection', (ws, httpReq) => {
           const parts = httpReq.url.split('/')
-          const plugin = pluginMaker(parts[URL_PATH_PART_VERSION], {
+          pluginMaker(parts[URL_PATH_PART_VERSION], {
             name: parts[URL_PATH_PART_NAME],
             token: parts[URL_PATH_PART_TOKEN],
             socket: ws,
             initialPeerBalance: this.config.initialBalancePerPeer,
             baseLedger: this.config.baseLedger
-          })
-          if (!plugin) {
-            ws.send('URL path not supported, try /api/17q3/user/pass or /api/17q4')
-            ws.close()
-            return
-          }
-          console.log('plugin instantiated')
-          plugin.connect().then(() => {
-            console.log('plugin connected', plugin.getAccount())
-            this.onPlugin(plugin)
-          }, (err) => {
+          }).then(plugin => {
+            if (!plugin) {
+              ws.send('URL path not supported, try /api/17q3/user/pass or /api/17q4')
+              ws.close()
+              return
+            }
+            console.log('plugin instantiated')
+            return plugin.connect().then(() => {
+              console.log('plugin connected', plugin.getAccount(), parts)
+              this.onPlugin(plugin)
+            })
+          }).catch(err => {
             console.error('could not connect plugin for ' + httpReq.url + ': ' + err.message)
           })
-        })
+       })
       }
     })
   },
