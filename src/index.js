@@ -16,6 +16,7 @@ class TestnetNode {
     this.transferHandler = new TransferHandler(this)
   }
   addPlugin (plugin) {
+    console.log('calling plugin.getInfo()!', plugin.getInfo())
     const prefix = plugin.getInfo().prefix
     console.log('have', prefix)
     return plugin.connect().then(() => {

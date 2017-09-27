@@ -51,7 +51,10 @@ function pluginMaker (version, config) {
         minBalance: 0, // 17q3 balance protocol doesn't support negative balances
         maxBalance: Infinity
       },
-      incomingSecret: 'bar', // this is not going to work, of course, we don't know what token people connect to Amundsen with
+      authCheck: function (username, token) {
+        console.log('authCheck', username, token)
+        return (username === 'client2' && token === 'bar')
+      },
       maxBalance: '1000000000',
       _store: {
         get: (k) => store[k],

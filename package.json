@@ -12,7 +12,7 @@
     "greenlock": "^2.1.16",
     "ilp-packet": "^1.3.0",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum#246803b",
-    "ilp-plugin-payment-channel-framework": "github:interledgerjs/ilp-plugin-payment-channel-framework#mj-await-auth",
+    "ilp-plugin-payment-channel-framework": "github:interledgerjs/ilp-plugin-payment-channel-framework#839b524",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow#72e4178"
   },
   "devDependencies": {

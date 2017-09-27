@@ -65,8 +65,8 @@ describe('Vouching System', () => {
     this.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
     this.condition = sha256(this.fulfillment)
     this.plugin = new PluginDummy({
-      prefix: 'test.dummy.',
-      connector: 'test.dummy.connie',
+      prefix: 'test.amundsen.',
+      connector: 'test.amundsen.connie',
       fulfillment: this.fulfillment
     })
     this.testnetNode = new TestnetNode()
@@ -81,7 +81,7 @@ describe('Vouching System', () => {
   describe('two clients', () => {
     beforeEach(function () {
       this.client1 = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
-      this.client2 = new WebSocket('ws://localhost:8000/api/17q4')
+      this.client2 = new WebSocket('ws://localhost:8000/api/17q4/client2') // NOTE: the client2 part is needed here to determine the BTP ledger prefix before socket is added 
       this.transfer = {
         transferId: uuid(),
         amount: '1235',
@@ -92,16 +92,16 @@ describe('Vouching System', () => {
           contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
           data: IlpPacket.serializeIlpPayment({
             amount: '1234',
-            account: 'test.dummy.client2.hi'
+            account: 'test.amundsen.client2.hi'
           })
         } ]
       }
       // These are ledger plugin interface format, will be used in incoming_prepare event:
       this.lpiTransferTo1 = {
         id: uuid(),
-        from: 'test.dummy.client1',
-        to: 'test.dummy.server',
-        ledger: 'test.dummy.',
+        from: 'test.amundsen.client1',
+        to: 'test.amundsen.server',
+        ledger: 'test.amundsen.',
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -114,9 +114,9 @@ describe('Vouching System', () => {
       }
       this.lpiTransferTooBig = {
         id: uuid(),
-        from: 'test.dummy.client1',
-        to: 'test.dummy.server',
-        ledger: 'test.dummy.',
+        from: 'test.amundsen.client1',
+        to: 'test.amundsen.server',
+        ledger: 'test.amundsen.',
         amount: '12345',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -129,9 +129,9 @@ describe('Vouching System', () => {
       }
       this.lpiTransferTo2 = {
         id: uuid(),
-        from: 'test.dummy.client1',
-        to: 'test.dummy.server',
-        ledger: 'test.dummy.',
+        from: 'test.amundsen.client1',
+        to: 'test.amundsen.server',
+        ledger: 'test.amundsen.',
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -151,7 +151,7 @@ describe('Vouching System', () => {
         // support auth_username yet, so have to send empty string.
         // It does support checking an auth token, but only one for all peers, so have to set
         // it to 'bar' which is hardcoded in src/pluginFactory.js for the moment:
-        return this.client2.send(btpAuthMessage('', 'bar', BtpPacket.BTP_VERSION_1))
+        return this.client2.send(btpAuthMessage('client2', 'bar', BtpPacket.BTP_VERSION_1))
       }).then(() => {
         return new Promise((resolve, reject) => {
           this.client2.on('message', msg => {
@@ -173,15 +173,15 @@ describe('Vouching System', () => {
               'vouch',
               BtpPacket.MIME_TEXT_PLAIN_UTF8,
               Buffer.concat([
-                Buffer.from([0, 'test.dummy.client1'.length]),
-                Buffer.from('test.dummy.client1', 'ascii')
+                Buffer.from([0, 'test.amundsen.client1'.length]),
+                Buffer.from('test.amundsen.client1', 'ascii')
               ]), BtpPacket.BTP_VERSION_ALPHA)),
           this.client2.send(btpMessagePacket(
               'vouch',
               BtpPacket.MIME_TEXT_PLAIN_UTF8,
               Buffer.concat([
-                Buffer.from([0, 'test.dummy.client1'.length]),
-                Buffer.from('test.dummy.client1', 'ascii')
+                Buffer.from([0, 'test.amundsen.client1'.length]),
+                Buffer.from('test.amundsen.client1', 'ascii')
               ]), BtpPacket.BTP_VERSION_1))
         ])
       })
@@ -202,9 +202,9 @@ describe('Vouching System', () => {
           assert.equal(acked, true)
           assert.deepEqual(this.plugin.transfers[0], {
             id: this.plugin.transfers[0].id,
-            from: 'test.dummy.dummy-account',
-            to: 'test.dummy.client2',
-            ledger: 'test.dummy.',
+            from: 'test.amundsen.dummy-account',
+            to: 'test.amundsen.client2',
+            ledger: 'test.amundsen.',
             amount: '1234',
             ilp: packet.toString('base64'),
             noteToSelf: {},
@@ -232,9 +232,9 @@ describe('Vouching System', () => {
    //         assert.equal(acked, true)
    //         assert.deepEqual(this.plugin.transfers[0], {
    //           id: this.plugin.transfers[0].id,
-   //           from: 'test.dummy.dummy-account',
-   //           to: 'test.dummy.client2',
-   //           ledger: 'test.dummy.',
+   //           from: 'test.amundsen.dummy-account',
+   //           to: 'test.amundsen.client2',
+   //           ledger: 'test.amundsen.',
    //           amount: '1234',
    //           ilp: packet.toString('base64'),
    //           noteToSelf: {},
