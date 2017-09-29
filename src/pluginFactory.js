@@ -33,6 +33,7 @@ function pluginMaker (version, config) {
     }, config.initialBalancePerPeer)
     console.log('peerLedger made from config', config.initialBalancePerPeer)
     const frog = new BtpFrog(peerLedger.getPlugin('client'), (obj) => {
+      console.log('serializing object from Frog', obj)
       const msg = BtpPacket.serialize(obj, BtpPacket.BTP_VERSION_ALPHA)
       config.socket.send(msg)
     }, BtpPacket.BTP_VERSION_ALPHA)

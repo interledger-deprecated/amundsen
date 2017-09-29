@@ -219,9 +219,12 @@ describe('Vouching System', () => {
             to: 'test.dummy.client2',
             ledger: 'test.dummy.',
             amount: '1234',
-            ilp: packet.toString('base64'),
+            ilp: IlpPacket.serializeIlpPayment({
+              amount: '1234',
+              account: 'test.dummy.client2.hi'
+            }).toString('base64'),
             noteToSelf: {},
-            executionCondition: condition.toString('base64'),
+            executionCondition: this.condition.toString('base64'),
             expiresAt: this.plugin.transfers[0].expiresAt,
             custom: {}
           })

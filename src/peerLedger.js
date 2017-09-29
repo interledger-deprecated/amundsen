@@ -189,6 +189,7 @@ class LedgerPlugin extends EventEmitter {
   }
 
   fulfillCondition (transferId, fulfillment) {
+    console.log('fulfillCondition', this.account, transferId, fulfillment)
     if (!this.ledger.transfers[transferId]) {
       return Promise.reject(new NamedError('transfer not found'))
     }
@@ -208,15 +209,20 @@ class LedgerPlugin extends EventEmitter {
       return Promise.reject(new NamedError('not accepted'))
     }
     this.ledger.transfers[transferId].fulfillment = fulfillment
-    this.balance.add(this.ledger.transfers[transferId].amount)
+    console.log('balance before adding', this.balance.toString(), new BigNumber(this.ledger.transfers[transferId].amount).toString())
+    // this.balance.add(new BigNumber(this.ledger.transfers[transferId].amount))
+    this.balance = new BigNumber(parseInt(this.balance.toString()) + parseInt(this.ledger.transfers[transferId].amount))
+    console.log('balance after adding', this.balance, this.ledger.transfers[transferId].amount)
     if (this.balance.gt(this._getMaxBalance())) {
+       console.log('fulfilling that would make my balance too high!', this.account, this.balance, this._getMaxBalance())
       this.ledger.transfers[transferId].rejected = true
-      delete this.ledger.transfer[transferId].fulfillment
+      delete this.ledger.transfers[transferId].fulfillment
       this.balance.subtract(this.ledger.transfers[transferId].amount)
       this._getOtherPlugin().balance.add(this.ledger.transfers[transferId].amount)
       return Promise.reject(new NamedError('insufficient balance'))
     }
-    this._getOtherPlugin().emit('outgoing_fulfill', this.ledger.transfers[transferId])
+    console.log('emitting outgoing fulfill', this.ledger.transfers[transferId])
+    this._getOtherPlugin().emit('outgoing_fulfill', this.ledger.transfers[transferId], fulfillment)
     this.emit('incoming_fulfill', this.ledger.transfers[transferId])
     return Promise.resolve()
   }
