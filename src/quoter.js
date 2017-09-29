@@ -4,6 +4,7 @@ function Quoter () {
   this.curves = {}
 }
 
+// TODO: use BigNumber here
 function findPoint (val, from, to, curveBuf) {
   let cursor = 0
   let prev = [0, 0]
@@ -37,12 +38,14 @@ function destToSource (y, curve) {
 
 Quoter.prototype = {
   onPlugin (prefix) {
+    console.log('quoter on prefix', prefix)
     this.setCurve(prefix, Buffer.from([
       0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 255, 255,
       0, 0, 0, 0, 0, 0, 255, 255
     ]), prefix)
+    console.log('routing tables is now', this.curves)
   },
 
   setCurve (prefix, curveBuf, peer) {
@@ -113,8 +116,9 @@ Quoter.prototype = {
   findHop (address, amount) {
     const curve = this.findCurve(address)
     return {
-      onwardAmount: destToSource(amount, curve.buf),
-      onwardPeer: curve.peer
+      amount: destToSource(parseInt(amount), curve.buf).toString(),
+      ledger: curve.peer,
+      to: address, // final hop
     }
   },
 

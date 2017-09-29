@@ -33,11 +33,12 @@ function invalidBigNum (n) {
 }
 
 class LedgerPlugin extends EventEmitter {
-  constructor (ledger, account, initialBalanceBigNum) {
+  constructor (ledger, account, initialBalancePerPeer) {
     super()
     this.ledger = ledger
     this.account = account
-    this.balance = initialBalanceBigNum
+    this.balance = initialBalancePerPeer
+    console.log('initial balance in peer ledger plugin', this.balance)
   }
 
   _getOtherRelativeAccount () {
@@ -50,6 +51,22 @@ class LedgerPlugin extends EventEmitter {
 
   _getOtherPlugin () {
     return this.ledger.getPlugin(this._getOtherRelativeAccount())
+  }
+
+  _getMinBalance () {
+    if (this.account === 'client') {
+      return this.ledger.info.minBalance
+    } else {
+      return -this.ledger.info.maxBalance
+    }
+  }
+
+  _getMaxBalance () {
+    if (this.account === 'client') {
+      return this.ledger.info.maxBalance
+    } else {
+      return -this.ledger.info.minBalance
+    }
   }
 
   // methods that don't affect the ledger or the other peer:
@@ -117,6 +134,13 @@ class LedgerPlugin extends EventEmitter {
         typeof transfer.executionCondition !== 'string' ||
         typeof transfer.expiresAt !== 'string' ||
         typeof transfer.ilp !== 'string') {
+      console.log(transfer.ledger, this.getInfo().prefix,
+        transfer.from, this.getAccount(),
+        transfer.to, this._getOtherAccount(),
+        typeof transfer.amount !== 'string',
+        typeof transfer.executionCondition !== 'string',
+        typeof transfer.expiresAt !== 'string',
+        typeof transfer.ilp !== 'string')
       return Promise.reject(new NamedError('invalid fields'))
     }
 
@@ -135,11 +159,12 @@ class LedgerPlugin extends EventEmitter {
     this.ledger.transfers[transfer.id] = transfer
     console.log('subtracting', this.balance, amountBigNum)
     this.balance.subtract(amountBigNum)
-    if (this.balance.lt(this.ledger.info.minBalance)) {
+    if (this.balance.lt(this._getMinBalance())) {
       this.ledger.transfers[transfer.id].rejected = true
       this.balance.add(amountBigNum)
       return Promise.reject(new NamedError('insufficient balance'))
     }
+    console.log('ledger emits!', transfer)
     this._getOtherPlugin().emit('incoming_prepare', transfer)
     this.emit('outgoing_prepare', transfer)
     setTimeout(() => {
@@ -156,6 +181,7 @@ class LedgerPlugin extends EventEmitter {
   }
 
   sendRequest (request) {
+    console.log('sending request over peer ledger!')
     if (typeof this._getOtherPlugin().requestHandler !== 'function') {
       return Promise.reject(new NamedError('no subscriptions'))
     }
@@ -183,7 +209,7 @@ class LedgerPlugin extends EventEmitter {
     }
     this.ledger.transfers[transferId].fulfillment = fulfillment
     this.balance.add(this.ledger.transfers[transferId].amount)
-    if (this.balance.gt(this.ledger.info.maxBalance)) {
+    if (this.balance.gt(this._getMaxBalance())) {
       this.ledger.transfers[transferId].rejected = true
       delete this.ledger.transfer[transferId].fulfillment
       this.balance.subtract(this.ledger.transfers[transferId].amount)
@@ -211,6 +237,7 @@ class LedgerPlugin extends EventEmitter {
   }
 
   registerRequestHandler (handler) {
+    console.log('registerRequestHandler')
     if (this.requestHandler) {
       throw new NamedError('request handler already registered')
     }
@@ -224,15 +251,16 @@ class LedgerPlugin extends EventEmitter {
   }
 }
 
-function PeerLedger (ledgerInfo, peerInitialBalance) {
+function PeerLedger (ledgerInfo, initialBalancePerPeer) {
   this.info = ledgerInfo
   this.transfers = {}
+  console.log({ ledgerInfo, initialBalancePerPeer })
   this.plugins = {
-    peer: new LedgerPlugin(this, 'peer', new BigNumber(peerInitialBalance), () => {
-      return this.plugins.me
+    client: new LedgerPlugin(this, 'client', new BigNumber(initialBalancePerPeer), () => {
+      return this.plugins.server
     }),
-    me: new LedgerPlugin(this, 'me', new BigNumber(peerInitialBalance).multiply(-1), () => {
-      return this.plugins.peer
+    server: new LedgerPlugin(this, 'server', new BigNumber(initialBalancePerPeer).multiply(-1), () => {
+      return this.plugins.client
     })
   }
 }
@@ -242,10 +270,10 @@ PeerLedger.prototype = {
     return this.plugins[name]
   },
   getOtherAccount (name) {
-    if (name === 'me') {
-      return 'peer'
+    if (name === 'server') {
+      return 'client'
     } else {
-      return 'me'
+      return 'server'
     }
   }
 }

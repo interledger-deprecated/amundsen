@@ -19,6 +19,9 @@ function btpMessagePacket(protocolName, contentType, data, btpVersion) {
 }
 
 function btpAuthMessage(username, token, btpVersion) {
+  if (btpVersion === BtpPacket.BTP_VERSION_ALPHA) {
+    throw new Error('There was no auth message in btp version alpha')
+  }
   return BtpPacket.serialize({
     type: BtpPacket.TYPE_MESSAGE,
     requestId: 0,
@@ -41,7 +44,7 @@ function btpPreparePacket(data, btpVersion) {
 }
 
 function btpAcknowledge(requestId, btpVersion) {
-  if (btpVersion === BtpPacket.BTP_VERSION_ALPHA) {
+  if (btpVersion === this.clientVersion1) {
     return BtpPacket.serialize({ type: BtpPacket.TYPE_ACK, requestId, data: [] }, btpVersion)
   } else {
     return BtpPacket.serialize({ type: BtpPacket.TYPE_RESPONSE, requestId, data: { protocolData: [] } }, btpVersion)
@@ -65,8 +68,8 @@ describe('Vouching System', () => {
     this.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
     this.condition = sha256(this.fulfillment)
     this.plugin = new PluginDummy({
-      prefix: 'test.amundsen.',
-      connector: 'test.amundsen.connie',
+      prefix: 'test.dummy.',
+      connector: 'test.dummy.connie',
       fulfillment: this.fulfillment
     })
     this.testnetNode = new TestnetNode()
@@ -81,7 +84,15 @@ describe('Vouching System', () => {
   describe('two clients', () => {
     beforeEach(function () {
       this.client1 = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
-      this.client2 = new WebSocket('ws://localhost:8000/api/17q4/client2') // NOTE: the client2 part is needed here to determine the BTP ledger prefix before socket is added 
+      this.clientVersion1 = BtpPacket.BTP_VERSION_ALPHA
+
+      // this.client2 = new WebSocket('ws://localhost:8000/api/17q4/client2') // NOTE: the client2 part is needed here to determine the BTP ledger prefix before socket is added 
+      // this.clientVersion2 = BtpPacket.BTP_VERSION_1
+
+      // temporarily only supporting 17q3, 17q4 support will be added back in a follow-up ticket!
+      this.client2 = new WebSocket('ws://localhost:8000/api/17q3/client2/bar')
+      this.clientVersion2 = BtpPacket.BTP_VERSION_ALPHA
+
       this.transfer = {
         transferId: uuid(),
         amount: '1235',
@@ -92,16 +103,16 @@ describe('Vouching System', () => {
           contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
           data: IlpPacket.serializeIlpPayment({
             amount: '1234',
-            account: 'test.amundsen.client2.hi'
+            account: 'test.dummy.client2.hi'
           })
         } ]
       }
       // These are ledger plugin interface format, will be used in incoming_prepare event:
       this.lpiTransferTo1 = {
         id: uuid(),
-        from: 'test.amundsen.client1',
-        to: 'test.amundsen.server',
-        ledger: 'test.amundsen.',
+        from: 'test.amundsen.client1.client',
+        to: 'test.amundsen.client1.server',
+        ledger: 'test.amundsen.client1.',
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -114,9 +125,9 @@ describe('Vouching System', () => {
       }
       this.lpiTransferTooBig = {
         id: uuid(),
-        from: 'test.amundsen.client1',
-        to: 'test.amundsen.server',
-        ledger: 'test.amundsen.',
+        from: 'test.amundsen.client1.client',
+        to: 'test.amundsen.client1.server',
+        ledger: 'test.amundsen.client1.',
         amount: '12345',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -129,9 +140,9 @@ describe('Vouching System', () => {
       }
       this.lpiTransferTo2 = {
         id: uuid(),
-        from: 'test.amundsen.client1',
-        to: 'test.amundsen.server',
-        ledger: 'test.amundsen.',
+        from: 'test.amundsen.client1.client',
+        to: 'test.amundsen.client1.server',
+        ledger: 'test.amundsen.client1.',
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -146,26 +157,27 @@ describe('Vouching System', () => {
         new Promise(resolve => this.client1.on('open', resolve)),
         new Promise(resolve => this.client2.on('open', resolve)),
       ]).then(() => {
-        // return this.client2.send(btpAuthMessage('client2', 'bar', BtpPacket.BTP_VERSION_1))
+        // return this.client2.send(btpAuthMessage('client2', 'bar', this.clientVersion2))
         // Amundsen uses ilp-plugin-payment-channel-framework for the 17q4 endpoint which doesn't
         // support auth_username yet, so have to send empty string.
         // It does support checking an auth token, but only one for all peers, so have to set
         // it to 'bar' which is hardcoded in src/pluginFactory.js for the moment:
-        return this.client2.send(btpAuthMessage('client2', 'bar', BtpPacket.BTP_VERSION_1))
+        
+        // return this.client2.send(btpAuthMessage('client2', 'bar', this.clientVersion2))
       }).then(() => {
-        return new Promise((resolve, reject) => {
-          this.client2.on('message', msg => {
-            const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
-            if (obj.requestId === 0 && obj.type === BtpPacket.TYPE_RESPONSE) {
-              console.log('auth success!', obj)
-              resolve()
-            }
-            if (obj.requestId === 0 && obj.type === BtpPacket.TYPE_ERROR) {
-              console.log('auth fail!', obj)
-              reject(new Error('BTP/1.0 auth failed'))
-            }
-          })
-        })
+        // return new Promise((resolve, reject) => {
+        //   this.client2.on('message', msg => {
+        //     const obj = BtpPacket.deserialize(msg, this.clientVersion2)
+        //     if (obj.requestId === 0 && obj.type === BtpPacket.TYPE_RESPONSE) {
+        //       console.log('auth success!', obj)
+        //       resolve()
+        //     }
+        //     if (obj.requestId === 0 && obj.type === BtpPacket.TYPE_ERROR) {
+        //       console.log('auth fail!', obj)
+        //       reject(new Error('BTP/1.0 auth failed'))
+        //     }
+        //   })
+        // })
       }).then(() => {
         console.log('both clients open!')
         return Promise.all([
@@ -175,14 +187,14 @@ describe('Vouching System', () => {
               Buffer.concat([
                 Buffer.from([0, 'test.amundsen.client1'.length]),
                 Buffer.from('test.amundsen.client1', 'ascii')
-              ]), BtpPacket.BTP_VERSION_ALPHA)),
+              ]), this.clientVersion1)),
           this.client2.send(btpMessagePacket(
               'vouch',
               BtpPacket.MIME_TEXT_PLAIN_UTF8,
               Buffer.concat([
                 Buffer.from([0, 'test.amundsen.client1'.length]),
                 Buffer.from('test.amundsen.client1', 'ascii')
-              ]), BtpPacket.BTP_VERSION_1))
+              ]), this.clientVersion2))
         ])
       })
     })
@@ -191,20 +203,21 @@ describe('Vouching System', () => {
       return Promise.all([ this.client1.close(), this.client2.close() ])
     })
 
-    it('should deliver to dummy ledger (17q3)', function (done) {
+    it('should deliver BTP to dummy ledger (17q3)', function (done) {
       let acked = false
       this.client1.on('message', (msg) => {
-        const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
+        const obj = BtpPacket.deserialize(msg, this.clientVersion1)
         console.log('client1 sees', obj)
         if (obj.type === BtpPacket.TYPE_ACK) {
           acked = true
+          console.log('acked is true!')
         } else {
           assert.equal(acked, true)
           assert.deepEqual(this.plugin.transfers[0], {
             id: this.plugin.transfers[0].id,
-            from: 'test.amundsen.dummy-account',
-            to: 'test.amundsen.client2',
-            ledger: 'test.amundsen.',
+            from: 'test.dummy.account',
+            to: 'test.dummy.client2',
+            ledger: 'test.dummy.',
             amount: '1234',
             ilp: packet.toString('base64'),
             noteToSelf: {},
@@ -218,13 +231,13 @@ describe('Vouching System', () => {
           done()
         }
       })
-      this.client1.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_ALPHA))
+      this.client1.send(btpPreparePacket(this.transfer, this.clientVersion1))
     })
 
    //   it('should deliver to dummy ledger (17q4)', function (done) {
    //     let acked = false
    //     this.client2.on('message', (msg) => {
-   //       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
+   //       const obj = BtpPacket.deserialize(msg, this.clientVersion2)
    //       console.log('client2 sees', obj)
    //       if (obj.type === BtpPacket.TYPE_RESPONSE) {
    //         acked = true
@@ -247,7 +260,7 @@ describe('Vouching System', () => {
    //         done()
    //       }
    //     })
-   //     this.client2.send(btpPreparePacket(this.transfer, BtpPacket.BTP_VERSION_1))
+   //     this.client2.send(btpPreparePacket(this.transfer, this.clientVersion2))
    //   })
       
    //   it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
@@ -265,11 +278,11 @@ describe('Vouching System', () => {
       
    //   it('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
    //     this.client1.on('message', (msg) => {
-   //       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
+   //       const obj = BtpPacket.deserialize(msg, this.clientVersion1)
    //       console.log('client1 sees', obj)
    //       if (obj.type === BtpPacket.TYPE_PREPARE) {
-   //         this.client2.send(btpAcknowledge(obj.requestId, BtpPacket.BTP_VERSION_ALPHA))
-   //         this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, BtpPacket.BTP_VERSION_ALPHA))
+   //         this.client2.send(btpAcknowledge(obj.requestId, this.clientVersion1))
+   //         this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, this.clientVersion1))
    //       }
    //     })
       
@@ -288,11 +301,11 @@ describe('Vouching System', () => {
       
    //   it('should accept from vouched wallets on dummy ledger (17q4)', function (done) {
    //     this.client2.on('message', (msg) => {
-   //       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_1)
+   //       const obj = BtpPacket.deserialize(msg, this.clientVersion2)
    //       console.log('client2 sees', obj)
    //       if (obj.type === BtpPacket.TYPE_PREPARE) {
-   //         this.client2.send(btpAcknowledge(obj.requestId, BtpPacket.BTP_VERSION_1))
-   //         this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, BtpPacket.BTP_VERSION_1))
+   //         this.client2.send(btpAcknowledge(obj.requestId, this.clientVersion2))
+   //         this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, this.clientVersion2))
    //       }
    //     })
       

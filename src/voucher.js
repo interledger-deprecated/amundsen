@@ -51,6 +51,7 @@ class Voucher {
 
   vouchBothWays (peerLedger, address) {
     [VouchPacket.VOUCH, VouchPacket.REACHME].map(callId => {
+      console.log('sending vouch!', callId)
       this.main.plugins[peerLedger].sendRequest({
         custom: {
           vouch: VouchPacket.serialize({ callId, address })

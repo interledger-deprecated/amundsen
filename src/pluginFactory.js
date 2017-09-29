@@ -27,11 +27,12 @@ function pluginMaker (version, config) {
       prefix: config.baseLedger + config.name + '.',
       currencyCode: 'USD',
       currencyScale: 9,
-      connectors: [ config.baseLedger + config.name + '.me' ], // the peer should send to me
-      minBalance: 0, // 17q3 balance protocol doesn't support negative balances
-      maxBalance: Infinity
-    }, config.initialPeerBalance)
-    const frog = new BtpFrog(peerLedger.getPlugin('peer'), (obj) => {
+      connectors: [ config.baseLedger + config.name + '.server' ], // the peer should send to me
+      minBalance: 0, // applies for peer's balance; 17q3 balance protocol doesn't support negative balances
+      maxBalance: Infinity // applies for peer's balance; my balance is not limited
+    }, config.initialBalancePerPeer)
+    console.log('peerLedger made from config', config.initialBalancePerPeer)
+    const frog = new BtpFrog(peerLedger.getPlugin('client'), (obj) => {
       const msg = BtpPacket.serialize(obj, BtpPacket.BTP_VERSION_ALPHA)
       config.socket.send(msg)
     }, BtpPacket.BTP_VERSION_ALPHA)
@@ -39,7 +40,7 @@ function pluginMaker (version, config) {
       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
       frog.handleMessage(obj)
     })
-    myPlugin = peerLedger.getPlugin('me')
+    myPlugin = peerLedger.getPlugin('server')
   } else {
     const store = {}
     myPlugin = new Plugin17q4({
@@ -162,7 +163,7 @@ PluginFactory.prototype = {
             name: parts[URL_PATH_PART_NAME],
             token: parts[URL_PATH_PART_TOKEN],
             socket: ws,
-            initialPeerBalance: this.config.initialBalancePerPeer,
+            initialBalancePerPeer: this.config.initialBalancePerPeer,
             baseLedger: this.config.baseLedger
           }).then(plugin => {
             if (!plugin) {
@@ -173,6 +174,7 @@ PluginFactory.prototype = {
             console.log('plugin instantiated')
             return plugin.connect().then(() => {
               console.log('plugin connected', plugin.getAccount(), parts)
+              console.log('plugin factory calls onPlugin')
               this.onPlugin(plugin)
             })
           }).catch(err => {
