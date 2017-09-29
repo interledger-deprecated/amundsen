@@ -54,7 +54,7 @@ class Voucher {
       console.log('sending vouch!', callId)
       this.main.plugins[peerLedger].sendRequest({
         custom: {
-          vouch: VouchPacket.serialize({ callId, address })
+          vouch: VouchPacket.serialize({ callId, address }).toString('base64')
         }
       })
     })
