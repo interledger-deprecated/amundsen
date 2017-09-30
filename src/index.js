@@ -7,7 +7,8 @@ const Quoter = require('./quoter')
 const Voucher = require('./voucher')
 
 class TestnetNode {
-  constructor () {
+  constructor (config) {
+    this.config = config
     this.plugins = {}
     this.fulfillments = {}
     this.quoter = new Quoter(this)
@@ -36,28 +37,18 @@ class TestnetNode {
     return this.plugins[prefix]
   }
   start() {
-    this.pluginFactory = new PluginFactory({
-      listen: 8000, //  tls: 'amundsen.michielbdejong.com',
-      initialBalancePerPeer: 10000,
-      baseLedger: 'test.amundsen.',
-    }, this.addPlugin.bind(this))
-
-    return Promise.all([
-    //  testnetNode.addPlugin(new PluginEth({
-    //    secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',
-    //    account: '0x' + 'fa5b9836c46b6559be750b2f3c12657081fab858'.toUpperCase(),
-    //    provider: 'http://localhost:8545',
-    //    contract: '0x8B3FBD781096B51E68448C6E5B53B240F663199F',
-    //    prefix: 'test.crypto.eth.rinkeby.'
-    //  })),
-    //  testnetNode.addPlugin(new PluginXrp({
-    //    secret: 'shvKKDpRGMyKMUVn4EyMqCh9BQoP9',
-    //    account: 'rhjRdyVNcaTNLXp3rkK4KtjCdUd9YEgrPs',
-    //    server: 'wss://s.altnet.rippletest.net:51233',
-    //    prefix: 'test.crypto.xrp.'
-    //  })),
-      this.pluginFactory.start()
-    ]).then(() => {
+    const promises = []
+    if (this.config.btp) {
+      this.pluginFactory = new PluginFactory(this.config.btp, this.addPlugin.bind(this))
+      promises.push(this.pluginFactory.start())
+    }
+    if (this.config.eth) {
+      promises.push(testnetNode.addPlugin(new PluginEth(this.config.eth)))
+    }
+    if (this.config.eth) {
+      promises.push(testnetNode.addPlugin(new PluginXrp(this.config.xrp)))
+    }
+    return Promise.all(promises).then(() => {
       console.log('started')
     })
   }

@@ -28,7 +28,7 @@
   "scripts": {
     "lint": "eslint .",
     "test": "mocha",
-    "start": "node src/index.js"
+    "start": "node src/production.js"
   },
   "engines": {
     "node": ">=8"
