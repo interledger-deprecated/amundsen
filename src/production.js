@@ -20,3 +20,6 @@ const testnetNode = new TestnetNode({
     prefix: 'test.crypto.xrp.'
   }
 })
+
+//...
+testnetNode.start()

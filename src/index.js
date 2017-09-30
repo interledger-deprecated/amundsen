@@ -43,10 +43,10 @@ class TestnetNode {
       promises.push(this.pluginFactory.start())
     }
     if (this.config.eth) {
-      promises.push(testnetNode.addPlugin(new PluginEth(this.config.eth)))
+      promises.push(this.addPlugin(new PluginEth(this.config.eth)))
     }
     if (this.config.eth) {
-      promises.push(testnetNode.addPlugin(new PluginXrp(this.config.xrp)))
+      promises.push(this.addPlugin(new PluginXrp(this.config.xrp)))
     }
     return Promise.all(promises).then(() => {
       console.log('started')
