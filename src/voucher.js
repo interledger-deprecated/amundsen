@@ -1,5 +1,6 @@
 const BigNumber = require('big-number')
 const VouchPacket = require('./protocols').VouchPacket
+const uuid = require('uuid/v4')
 
 class Voucher {
   constructor (main) {
@@ -53,6 +54,7 @@ class Voucher {
     [VouchPacket.VOUCH, VouchPacket.REACHME].map(callId => {
       console.log('sending vouch!', callId)
       this.main.plugins[peerLedger].sendRequest({
+        id: uuid(),
         custom: {
           vouch: VouchPacket.serialize({ callId, address }).toString('base64')
         }

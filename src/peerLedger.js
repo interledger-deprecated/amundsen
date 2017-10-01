@@ -181,7 +181,7 @@ class LedgerPlugin extends EventEmitter {
   }
 
   sendRequest (request) {
-    console.log('sending request over peer ledger!')
+    console.log('sending request over peer ledger!', request)
     if (typeof this._getOtherPlugin().requestHandler !== 'function') {
       return Promise.reject(new NamedError('no subscriptions'))
     }
