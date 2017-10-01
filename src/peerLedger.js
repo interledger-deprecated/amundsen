@@ -157,6 +157,7 @@ class LedgerPlugin extends EventEmitter {
     }
 
     this.ledger.transfers[transfer.id] = transfer
+    console.log('transfer added to ledger!', this.ledger.transfers)
     console.log('subtracting', this.balance, amountBigNum)
     this.balance.subtract(amountBigNum)
     if (this.balance.lt(this._getMinBalance())) {
@@ -168,11 +169,11 @@ class LedgerPlugin extends EventEmitter {
     this._getOtherPlugin().emit('incoming_prepare', transfer)
     this.emit('outgoing_prepare', transfer)
     setTimeout(() => {
-      if (this.ledgertransfers[transfer.id].fulfillment ||
-          this.ledgertransfers[transfer.id].rejected) {
+      if (this.ledger.transfers[transfer.id].fulfillment ||
+          this.ledger.transfers[transfer.id].rejected) {
         return
       }
-      this.ledgertransfers[transfer.id].rejected = true
+      this.ledger.transfers[transfer.id].rejected = true
       this.balance.add(amountBigNum)
       this._getOtherPlugin().emit('incoming_cancel', transfer)
       this.emit('outgoing_cancel', transfer)
@@ -189,8 +190,9 @@ class LedgerPlugin extends EventEmitter {
   }
 
   fulfillCondition (transferId, fulfillment) {
-    console.log('fulfillCondition', this.account, transferId, fulfillment)
+    console.log('fulfillCondition in peerLedger!', this.account, transferId, fulfillment)
     if (!this.ledger.transfers[transferId]) {
+      console.log('transfer not found!', transferId, this.ledger.transfers)
       return Promise.reject(new NamedError('transfer not found'))
     }
     if (this.ledger.transfers[transferId].to !== this.getAccount()) {
