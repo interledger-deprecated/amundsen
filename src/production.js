@@ -4,7 +4,10 @@ const testnetNode = new TestnetNode({
   btp: {
     tls: 'amundsen.michielbdejong.com',
     initialBalancePerPeer: 10000,
-    baseLedger: 'test.amundsen.'
+    baseLedger: 'test.amundsen.',
+    authCheck: function (username, token) {
+      return true
+    }
   },
   eth: {
     secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',

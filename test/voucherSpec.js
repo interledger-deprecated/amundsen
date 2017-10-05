@@ -78,7 +78,10 @@ describe('Vouching System', () => {
       btp: {
         listen: 8000,
         initialBalancePerPeer: 10000,
-        baseLedger: 'test.amundsen.'
+        baseLedger: 'test.amundsen.',
+        authCheck: function (username, token) {
+          return (username === 'client2' && token === 'bar')
+        }
       }
     })
     return this.testnetNode.addPlugin(this.plugin).then(() => {

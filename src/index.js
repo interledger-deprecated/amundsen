@@ -38,7 +38,7 @@ class TestnetNode {
     if (this.config.eth) {
       promises.push(this.addPlugin(new PluginEth(this.config.eth)))
     }
-    if (this.config.eth) {
+    if (this.config.xrp) {
       promises.push(this.addPlugin(new PluginXrp(this.config.xrp)))
     }
     return Promise.all(promises)

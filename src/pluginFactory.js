@@ -51,14 +51,12 @@ function pluginMaker (version, config) {
         minBalance: 0, // 17q3 balance protocol doesn't support negative balances
         maxBalance: Infinity
       },
-      authCheck: function (username, token) {
-        return (username === 'client2' && token === 'bar')
-      },
+      authCheck: config.authCheck,
       maxBalance: '1000000000',
       _store: {
-        get: (k) => store[k],
-        put: (k, v) => { store[k] = v },
-        del: (k) => delete store[k]
+        get: (k) => Promise.resolve(store[k]),
+        put: (k, v) => { store[k] = v; return Promise.resolve() },
+        del: (k) => { delete store[k]; return Promise.resolve() }
       }
     })
     promise = myPlugin.addSocket(config.socket)
@@ -81,7 +79,7 @@ const HTTPS_PORT = 443
 // This function starts a TLS webserver on HTTPS_PORT, with on-the-fly LetsEncrypt cert registration.
 // It also starts a redirect server on HTTP_REDIRECT_PORT, which GreenLock uses for the ACME challenge.
 // Certificates and temporary files are stored in LE_ROOT
-function getLetsEncryptServers (domain) {
+function getLetsEncryptServers (domain, email) {
   let httpServer
   const le = LE.create({
     // server: 'staging',
@@ -99,7 +97,7 @@ function getLetsEncryptServers (domain) {
     })
   }).then(() => {
     return le.core.certificates.getAsync({
-      email: `letsencrypt+${domain}@gmail.com`,
+      email,
       domains: [ domain ]
     })
   }).then(function (certs) {
@@ -133,7 +131,7 @@ PluginFactory.prototype = {
     // case 1: use LetsEncrypt => [https, http]
     if (this.config.tls) {
       this.myBaseUrl = 'wss://' + this.config.tls
-      return getLetsEncryptServers(this.config.tls)
+      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`)
     }
 
     // case 2: don't run a server => []
@@ -162,7 +160,8 @@ PluginFactory.prototype = {
             token: parts[URL_PATH_PART_TOKEN],
             socket: ws,
             initialBalancePerPeer: this.config.initialBalancePerPeer,
-            baseLedger: this.config.baseLedger
+            baseLedger: this.config.baseLedger,
+            authCheck: this.config.authCheck
           }).then(plugin => {
             if (!plugin) {
               ws.send('URL path not supported, try /api/17q3/user/pass or /api/17q4')

@@ -1,7 +1,7 @@
 const Plugin = require('ilp-plugin-payment-channel-framework')
 
 const localClient = new Plugin({
-  btpUri: 'btp+ws://localClient:asdf@localhost:8000/api/17q4'
+  server: 'btp+ws://localClient:asdf@localhost:8000/api/17q4'
 })
 
 localClient.connect()

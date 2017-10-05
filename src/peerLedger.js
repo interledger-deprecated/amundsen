@@ -12,20 +12,8 @@ class NamedError extends Error {
 }
 
 function invalidDate (d) {
-  // from https://stackoverflow.com/a/1353711/680454
-  if (Object.prototype.toString.call(d) === '[object Date]') {
-    // it is a date
-    if (isNaN(d.getTime())) { // d.valueOf() could also work
-      // date is not valid
-      return true
-    } else {
-      // date is valid
-      return false
-    }
-  } else {
-    // not a date
-    return true
-  }
+  // adapted from https://stackoverflow.com/a/1353711/680454
+  return !(d instanceof Date) || isNaN(d)
 }
 
 function invalidBigNum (n) {
