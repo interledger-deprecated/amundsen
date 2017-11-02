@@ -84,7 +84,7 @@ describe('Vouching System', () => {
         }
       }
     })
-    return this.testnetNode.addPlugin(this.plugin).then(() => {
+    return this.testnetNode.addPlugin(this.plugin, Buffer.from([ 0, 0, 0, 1 ])).then(() => {
       return this.testnetNode.start()
     })
   })
