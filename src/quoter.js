@@ -16,8 +16,8 @@ function findPoint (val, from, to, curveBuf) {
     // 16 bytes define 2 UInt64's for one curve point:
     // x:  0  1  2  3      4  5  6  7
     // y:  8  9 10 11     12 13 14 15
-    const readX = curveBuf[cursor + 7] + 256 * (curveBuf[cursor + 6] + (256 * curveBuf[cursor + 5] + (256 * curveBuf[cursor + 4])))
-    const readY = curveBuf[cursor + 15] + 256 * (curveBuf[cursor + 14] + (256 * curveBuf[cursor + 13] + (256 * curveBuf[cursor + 12])))
+    const readX = curveBuf[cursor + 7] + 256 * (curveBuf[cursor + 6] + 256 * (curveBuf[cursor + 5] + 256 * (curveBuf[cursor + 4])))
+    const readY = curveBuf[cursor + 15] + 256 * (curveBuf[cursor + 14] + 256 * (curveBuf[cursor + 13] + 256 * (curveBuf[cursor + 12])))
     prev = next
     next = [ readX, readY ]
     cursor += 16
@@ -34,14 +34,16 @@ function destToSource (y, curve) {
   return findPoint(y, 1, 0, curve)
 }
 
+function makeCurve(rate) {
+  const zero = Buffer.from([ 0, 0, 0, 0, 0, 0, 0, 0 ])
+  const maxSourceAmount = Buffer.from([ 0, 0, 0, 0, 0, 1, 0, 0 ]) // 2^16
+  const maxDestAmount = Buffer.concat([ rate.slice(2), Buffer.from([ 0, 0 ]) ]) // rate times 2^16
+  return Buffer.concat([ zero, zero, maxSourceAmount, maxDestAmount ])
+}
+
 Quoter.prototype = {
-  onPlugin (prefix) {
-    this.setCurve(prefix, Buffer.from([
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 255, 255,
-      0, 0, 0, 0, 0, 0, 255, 255
-    ]), prefix)
+  onPlugin (prefix, rate) {
+    this.setCurve(prefix, makeCurve(rate), prefix)
   },
 
   setCurve (prefix, curveBuf, peer) {

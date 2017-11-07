@@ -16,11 +16,11 @@ class TestnetNode {
     this.requestHandler = new RequestHandler(this)
     this.transferHandler = new TransferHandler(this)
   }
-  addPlugin (plugin) {
+  addPlugin (plugin, rate) {
     const prefix = plugin.getInfo().prefix
     return plugin.connect().then(() => {
       this.plugins[prefix] = plugin
-      this.quoter.onPlugin(prefix)
+      this.quoter.onPlugin(prefix, rate)
       this.voucher.onPlugin(prefix)
       this.requestHandler.onPlugin(prefix)
       this.transferHandler.onPlugin(prefix)
@@ -36,10 +36,10 @@ class TestnetNode {
       promises.push(this.pluginFactory.start())
     }
     if (this.config.eth) {
-      promises.push(this.addPlugin(new PluginEth(this.config.eth)))
+      promises.push(this.addPlugin(new PluginEth(this.config.eth), this.config.eth.rate))
     }
     if (this.config.xrp) {
-      promises.push(this.addPlugin(new PluginXrp(this.config.xrp)))
+      promises.push(this.addPlugin(new PluginXrp(this.config.xrp), this.config.xrp.rate))
     }
     return Promise.all(promises)
   }
