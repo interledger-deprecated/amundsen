@@ -70,7 +70,7 @@ describe('Quoter', () => {
 
   describe('onPlugin', () => {
     beforeEach(function () {
-      this.quoter.onPlugin('g.example.123.', Buffer.from([ 0, 0, 112, 139 ])) // TODO: support rates > 65535
+      this.quoter.onPlugin('g.example.123.', Buffer.from([ 0, 0, 0, 0, 0, 0, 112, 139 ])) // TODO: support rates > 65535
     })
 
     describe('calculate based on rate', () => {

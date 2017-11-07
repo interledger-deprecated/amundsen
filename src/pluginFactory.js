@@ -169,7 +169,7 @@ PluginFactory.prototype = {
               return
             }
             return plugin.connect().then(() => {
-              this.onPlugin(plugin, Buffer.from([ 0, 0, 0, 1]))
+              this.onPlugin(plugin, Buffer.from([ 0, 0, 0, 0, 0, 0, 0, 1]))
             })
           }).catch(err => {
             console.error('could not connect plugin for ' + httpReq.url + ': ' + err.message)

@@ -35,12 +35,9 @@ function destToSource (y, curve) {
 }
 
 function makeCurve(rate) {
-  if (rate === undefined) {
-    throw new Error('asdf')
-  }
   const zero = Buffer.from([ 0, 0, 0, 0, 0, 0, 0, 0 ])
   const maxSourceAmount = Buffer.from([ 0, 0, 0, 0, 0, 1, 0, 0 ]) // 2^16
-  const maxDestAmount = Buffer.concat([ Buffer.from([ 0, 0 ]), rate, Buffer.from([ 0, 0 ]) ]) // rate times 2^16
+  const maxDestAmount = Buffer.concat([ rate.slice(2), Buffer.from([ 0, 0 ]) ]) // rate times 2^16
   return Buffer.concat([ zero, zero, maxSourceAmount, maxDestAmount ])
 }
 
