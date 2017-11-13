@@ -71,7 +71,7 @@ const URL_PATH_PART_VERSION = 2
 const URL_PATH_PART_NAME = 3
 const URL_PATH_PART_TOKEN = 4
 
-const WELCOME_TEXT = 'This is a BTP server, please upgrade to WebSockets.'
+const WELCOME_TEXT = '<a href="https://github.com/interledgerjs/amundsen"><h2>This is a BTP server, please upgrade to WebSockets.</h2><img src="https://oceanwide-4579.kxcdn.com/uploads/media-dynamic/cache/jpg_optimize/uploads/media/default/0001/09/thumb_8845_default_1600.jpeg"></a>'
 const LE_ROOT = '~/letsencrypt'
 const HTTP_REDIRECT_PORT = 80
 const HTTPS_PORT = 443
@@ -110,6 +110,7 @@ function getLetsEncryptServers (domain, email) {
         cert: certs.cert,
         ca: certs.chain
       }, (req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html' })
         res.end(WELCOME_TEXT)
       })
       httpsServer.listen(HTTPS_PORT, (err) => {
