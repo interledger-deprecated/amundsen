@@ -35,6 +35,7 @@ class RequestHandler {
             return this.main.quoter.answerLiquidity(ilpReq.data).then(ilpRes => toLpi(IlpPacket.serializeIlqpLiquidityResponse(ilpRes), {}, msg))
         }
       } else if (msg.custom) {
+        console.log('custom!', msg)
         return Promise.resolve(toLpi(undefined, { error: 'not implemented yet' }, msg))
       }
       return Promise.resolve(toLpi(undefined, { error: 'request had neither ilp nor custom' }, msg))
