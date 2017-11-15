@@ -117,6 +117,15 @@ Quoter.prototype = {
     }
   },
 
+  findForwardedHop (address, incomingAmount) {
+    const curve = this.findCurve(address)
+    return {
+      amount: Math.ceil(parseInt(amount) * 1.01).toString(),
+      ledger: curve.peer,
+      to: address // final hop
+    }
+  },
+
   getRoutesArray (omitPeer) {
     let arr = []
     for (let prefix of this.curves) {

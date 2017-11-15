@@ -3,6 +3,9 @@ const uuid = require('uuid/v4')
 
 const MIN_MESSAGE_WINDOW = 10000
 
+const TYPE_EXACT = 1
+const TYPE_FORWARDED = 10
+
 class TransferHandler {
   constructor (main) {
     this.main = main
@@ -11,8 +14,13 @@ class TransferHandler {
 
   onPlugin (prefix) {
     this.main.getPlugin(prefix).on('incoming_prepare', (transfer) => {
-      const destination = IlpPacket.deserializeIlpPayment(Buffer.from(transfer.ilp, 'base64'))
-      const onwardTransfer = this.main.quoter.findHop(destination.account, destination.amount)
+      const packet = IlpPacket.deserializeIlpPacket(Buffer.from(transfer.ilp, 'base64'))
+      let onwardTransfer
+      if (packet.type === TYPE_EXACT) {
+         onwardTransfer = this.main.quoter.findHop(packet.data.account, packet.data.amount)
+      } else if (packet.type === TYPE_FORWARDED) {
+         onwardTransfer = this.main.quoter.findForwardedHop(packet.data.account, transfer.amount)
+      }
       const onwardPlugin = this.main.getPlugin(onwardTransfer.ledger)
       this.outstanding[transfer.executionCondition] = transfer
       onwardPlugin.sendTransfer(Object.assign(onwardTransfer, {
