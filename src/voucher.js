@@ -42,7 +42,7 @@ class Voucher {
       return Promise.resolve(false)
     }
     return this.main.plugins[this.vouchingMap[fromAddress]].getBalance().then(balance => {
-      return new BigNumber(balance).gte(amount)
+      return new BigNumber(balance).multiply(-1).gte(amount)
     })
   }
 
@@ -55,6 +55,10 @@ class Voucher {
         }
       })
     })
+  }
+
+  rememberIncomingVouch (vouchee, voucher) {
+    this.vouchingMap[vouchee] = voucher
   }
 }
 
