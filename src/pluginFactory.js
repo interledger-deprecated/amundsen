@@ -8,7 +8,7 @@ const leAcmeCore = require('le-acme-core')
 const leStoreBot = require('le-store-certbot')
 const WebSocket = require('ws')
 const BtpPacket = require('btp-packet')
-const BtpFrog = require('btp-toolbox').Frog
+const BtpFrog = require('./frog')
 const PeerLedger = require('./peerLedger')
 const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
 
@@ -37,6 +37,7 @@ function pluginMaker (version, config) {
     }, BtpPacket.BTP_VERSION_ALPHA)
     config.socket.on('message', (msg) => {
       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
+      console.log('frog handles', msg, obj)
       frog.handleMessage(obj)
     })
     myPlugin = peerLedger.getPlugin('server')
