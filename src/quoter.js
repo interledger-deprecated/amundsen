@@ -78,33 +78,39 @@ Quoter.prototype = {
       }
       parts.pop()
     }
-    console.error('tried to find curve', address, this.curves)
+    // console.error('tried to find curve', address, this.curves)
     throw new Error('no curve found')
   },
 
   answerLiquidity (req) {
-    const curve = this.findCurve(req.destinationAccount)
-    return Promise.resolve({
-      liquidityCurve: curve.buf,
-      appliesToPrefix: curve.prefix,
-      sourceHoldDuration: 15000,
-      expiresAt: new Date(Date.now() + 3600 * 1000)
+    return Promise.resolve().then(() => {
+      const curve = this.findCurve(req.destinationAccount)
+      return Promise.resolve({
+        liquidityCurve: curve.buf,
+        appliesToPrefix: curve.prefix,
+        sourceHoldDuration: 15000,
+        expiresAt: new Date(Date.now() + 3600 * 1000)
+      })
     })
   },
 
   answerBySource (req) {
-    const curve = this.findCurve(req.destinationAccount)
-    return Promise.resolve({
-      destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf).toString(),
-      sourceHoldDuration: 3000
+    return Promise.resolve().then(() => {
+      const curve = this.findCurve(req.destinationAccount)
+      return Promise.resolve({
+        destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf).toString(),
+        sourceHoldDuration: 3000
+      })
     })
   },
 
   answerByDest (req) {
-    const curve = this.findCurve(req.destinationAccount)
-    return Promise.resolve({
-      sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf).toString(),
-      sourceHoldDuration: 3000
+    return Promise.resolve().then(() => {
+      const curve = this.findCurve(req.destinationAccount)
+      return Promise.resolve({
+        sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf).toString(),
+        sourceHoldDuration: 3000
+      })
     })
   },
 

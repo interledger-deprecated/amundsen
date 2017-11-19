@@ -254,7 +254,7 @@ Frog.prototype = {
     const lpiRequest = {
       id: obj.requestId.toString(), // String in LPI, Number in BTP
       from: this.plugin.getAccount(), // String
-      to: protocolDataAsObj.to.data.toString('ascii'), // String in LPI, Buffer in BTP
+      to: (protocolDataAsObj.to ? protocolDataAsObj.data.toString('ascii') : this.plugin.getInfo().prefix + 'connector'), // String in LPI, Buffer in BTP
       ledger: this.plugin.getInfo().prefix, // String
       ilp: protocolDataAsObj.ilp.data.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), // Base64 in LPI, Buffer in BTP
       custom: {}

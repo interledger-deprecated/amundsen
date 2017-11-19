@@ -37,7 +37,6 @@ function pluginMaker (version, config) {
     }, BtpPacket.BTP_VERSION_ALPHA)
     config.socket.on('message', (msg) => {
       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
-      console.log('frog handles', msg, obj)
       frog.handleMessage(obj)
     })
     myPlugin = peerLedger.getPlugin('server')

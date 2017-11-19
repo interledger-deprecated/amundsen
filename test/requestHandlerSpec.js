@@ -92,7 +92,7 @@ describe('Request Handler', () => {
     return this.testnetNode.stop()
   })
 
-  describe('Quote By Source', () => {
+  describe('Unknown destination', () => {
     beforeEach(function () {
       this.client = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
       this.clientVersion = BtpPacket.BTP_VERSION_ALPHA
@@ -126,12 +126,31 @@ describe('Request Handler', () => {
       return this.client.close()
     })
 
-    it('should respond to quote request (17q3)', function (done) {
+    it('should respond with Unreachable error (17q3)', function (done) {
       this.client.on('message', (msg) => {
         const obj = BtpPacket.deserialize(msg, this.clientVersion)
-        assert.deepEqual(obj, {
-          type: BtpPacket.TYPE_RESPONSE
+        assert.equal(obj.type, BtpPacket.TYPE_RESPONSE)
+        assert.equal(obj.data.length, 3)
+        assert.equal(obj.data[0].protocolName, 'ilp')
+        assert.equal(obj.data[0].contentType, BtpPacket.MIME_APPLICATION_OCTET_STREAM)
+        const ilpError = IlpPacket.deserializeIlpError(obj.data[0].data)
+        assert.equal(ilpError.code, 'F02')
+        assert.equal(ilpError.name, 'Unreachable')
+        assert.equal(ilpError.triggeredBy, 'test.amundsen.client1.connector')
+        assert.deepEqual(ilpError.forwardedBy, [ ])
+        assert.equal(ilpError.triggeredAt instanceof Date, true)
+        assert.equal(ilpError.data, JSON.stringify({ }))
+        assert.deepEqual(obj.data[1], {
+          protocolName: 'from',
+          contentType: BtpPacket.MIME_TEXT_PLAIN_UTF8,
+          data: Buffer.from('test.amundsen.client1.connector', 'ascii')
         })
+        assert.deepEqual(obj.data[2], {
+          protocolName: 'to',
+          contentType: BtpPacket.MIME_TEXT_PLAIN_UTF8,
+          data: Buffer.from('test.amundsen.client1.client', 'ascii')
+        })
+        assert.equal(obj.requestId, 1)
         done()
       })
     })
