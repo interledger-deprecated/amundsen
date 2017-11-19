@@ -10,6 +10,7 @@ function findPoint (val, from, to, curveBuf) {
   let prev = [0, 0]
   let next = [0, 0]
   while (next[from] < val) {
+    console.log('while', { val, from, to, cursor, prev, next })
     if (cursor + 15 >= curveBuf.length) {
       throw new Error('amount lies past last curve point')
     }

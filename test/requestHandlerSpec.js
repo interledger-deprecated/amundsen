@@ -86,17 +86,20 @@ describe('Request Handler', () => {
     })
     return this.testnetNode.addPlugin(this.plugin, Buffer.from([ 0, 0, 0, 0, 0, 0, 0, 1 ])).then(() => {
       return this.testnetNode.start()
+    }).then(() => {
+      this.client = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
+      this.clientVersion = BtpPacket.BTP_VERSION_ALPHA
+      return new Promise(resolve => this.client.on('open', resolve))
     })
   })
   afterEach(function () {
-    return this.testnetNode.stop()
+    return this.testnetNode.stop().then(() => {
+      return this.client.close()
+    })
   })
 
-  describe('Unknown destination', () => {
+  describe('Known destination', () => {
     beforeEach(function () {
-      this.client = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
-      this.clientVersion = BtpPacket.BTP_VERSION_ALPHA
-
       this.message = {
         transferId: uuid(),
         amount: '1235',
@@ -111,19 +114,56 @@ describe('Request Handler', () => {
           })
         } ]
       }
-      return new Promise(resolve => this.client.on('open', resolve)).then(() => {
-        return this.client.send(btpMessagePacket(
-            'ilp',
-            BtpPacket.MIME_APPLICATION_OCTET_STREAM,
-            IlpPacket.serializeIlqpBySourceRequest({
-              destinationAccount: 'example.nexus.bob',
-              sourceAmount: '9000000000',
-              destinationHoldDuration: 3000
-            }), this.clientVersion))
+      return this.client.send(btpMessagePacket(
+        'ilp',
+        BtpPacket.MIME_APPLICATION_OCTET_STREAM,
+        IlpPacket.serializeIlqpBySourceRequest({
+          destinationAccount: 'test.dummy.bob',
+          sourceAmount: '9000',
+          destinationHoldDuration: 3000
+        }), this.clientVersion))
+    })
+
+    it('should respond with QuoteResponse (17q3)', function (done) {
+      this.client.on('message', (msg) => {
+        const obj = BtpPacket.deserialize(msg, this.clientVersion)
+        assert.equal(obj.type, BtpPacket.TYPE_RESPONSE)
+        assert.equal(obj.data.length, 3)
+        assert.equal(obj.data[0].protocolName, 'ilp')
+        assert.equal(obj.data[0].contentType, BtpPacket.MIME_APPLICATION_OCTET_STREAM)
+        assert.deepEqual(IlpPacket.deserializeIlqpBySourceResponse(obj.data[0].data), {
+          destinationAmount: '9000',
+          sourceHoldDuration: 3000
+        })
+        done()
       })
     })
-    afterEach(function () {
-      return this.client.close()
+  })
+
+  describe('Unknown destination', () => {
+    beforeEach(function () {
+      this.message = {
+        transferId: uuid(),
+        amount: '1235',
+        executionCondition: this.condition,
+        expiresAt: new Date(new Date().getTime() + 100000),
+        protocolData: [ {
+          protocolName: 'ilp',
+          contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
+          data: IlpPacket.serializeIlpPayment({
+            amount: '1234',
+            account: 'test.dummy.client2.hi'
+          })
+        } ]
+      }
+      return this.client.send(btpMessagePacket(
+        'ilp',
+        BtpPacket.MIME_APPLICATION_OCTET_STREAM,
+        IlpPacket.serializeIlqpBySourceRequest({
+          destinationAccount: 'example.nexus.bob',
+          sourceAmount: '90000',
+          destinationHoldDuration: 3000
+        }), this.clientVersion))
     })
 
     it('should respond with Unreachable error (17q3)', function (done) {

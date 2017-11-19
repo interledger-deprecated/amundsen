@@ -44,7 +44,11 @@ class TestnetNode {
     return Promise.all(promises)
   }
   stop () {
-    return Promise.resolve()
+    const promises = []
+    if (this.config.btp) {
+      promises.push(this.pluginFactory.stop())
+    }
+    return Promise.all(promises)
   }
 }
 

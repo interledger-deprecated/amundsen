@@ -15,6 +15,7 @@ function toIlpError(err, msg) {
       })
     })
   }
+  console.error('unknown error', err.message)
 
   return IlpPacket.serializeIlpError({
     code: 'T00',
