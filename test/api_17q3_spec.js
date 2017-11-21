@@ -97,10 +97,6 @@ describe('Vouching System', () => {
       this.client1 = new WebSocket('ws://localhost:8000/api/17q3/client1/foo')
       this.clientVersion1 = BtpPacket.BTP_VERSION_ALPHA
 
-      // this.client2 = new WebSocket('ws://localhost:8000/api/17q4/client2') // NOTE: the client2 part is needed here to determine the BTP ledger prefix before socket is added
-      // this.clientVersion2 = BtpPacket.BTP_VERSION_1
-
-      // temporarily only supporting 17q3, 17q4 support will be added back in a follow-up ticket!
       this.client2 = new WebSocket('ws://localhost:8000/api/17q3/client2/bar')
       this.clientVersion2 = BtpPacket.BTP_VERSION_ALPHA
 
@@ -222,35 +218,7 @@ describe('Vouching System', () => {
       this.client1.send(btpPreparePacket(this.transfer, this.clientVersion1))
     })
 
-    it.skip('should deliver to dummy ledger (17q4)', function (done) {
-      let acked = false
-      this.client2.on('message', (msg) => {
-        const obj = BtpPacket.deserialize(msg, this.clientVersion2)
-        if (obj.type === BtpPacket.TYPE_RESPONSE) {
-          acked = true
-        } else {
-          assert.equal(acked, true)
-          assert.deepEqual(this.plugin.transfers[0], {
-            id: this.plugin.transfers[0].id,
-            from: 'test.amundsen.dummy-account',
-            to: 'test.amundsen.client2',
-            ledger: 'test.amundsen.',
-            amount: '1234',
-            ilp: this.packet.toString('base64'),
-            noteToSelf: {},
-            executionCondition: this.condition.toString('base64'),
-            expiresAt: this.plugin.transfers[0].expiresAt,
-            custom: {}
-          })
-          assert.equal(this.testnetNode.getPlugin('downstream_' + this.client1.config.btp.name).btp.balance, 8765)
-          assert.equal(this.testnetNode.peers('downstream_' + this.client2.config.btp.name).btp.balance, 10000)
-          done()
-        }
-      })
-      this.client2.send(btpPreparePacket(this.transfer, this.clientVersion2))
-    })
-
-    it.skip('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
+    it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
       this.plugin.successCallback = (transferId, fulfillmentBase64) => {
         done(new Error('should not have succeeded'))
       }
@@ -263,7 +231,7 @@ describe('Vouching System', () => {
       this.plugin.handlers.incoming_prepare(this.lpiTransferTooBig)
     })
 
-    it.skip('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
+    it('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
       this.client1.on('message', (msg) => {
         const obj = BtpPacket.deserialize(msg, this.clientVersion1)
         if (obj.type === BtpPacket.TYPE_PREPARE) {
@@ -283,28 +251,6 @@ describe('Vouching System', () => {
         done(rejectionReasonObj)
       }
       this.plugin.handlers.incoming_prepare(this.lpiTransferTo1)
-    })
-
-    it.skip('should accept from vouched wallets on dummy ledger (17q4)', function (done) {
-      this.client2.on('message', (msg) => {
-        const obj = BtpPacket.deserialize(msg, this.clientVersion2)
-        if (obj.type === BtpPacket.TYPE_PREPARE) {
-          this.client2.send(btpAcknowledge(obj.requestId, this.clientVersion2))
-          this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, this.clientVersion2))
-        }
-      })
-
-      this.plugin.successCallback = (transferId, fulfillmentBase64) => {
-        assert.equal(transferId, this.lpiTransferTo2.id)
-        assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), this.fulfillment)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
-        done()
-      }
-      this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
-        done(rejectionReasonObj)
-      }
-      this.plugin.handlers.incoming_prepare(this.lpiTransferTo2)
     })
   })
 })
