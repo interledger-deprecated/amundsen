@@ -110,7 +110,7 @@ describe('Vouching System', () => {
           contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
           data: IlpPacket.serializeIlpPayment({
             amount: '1234',
-            account: 'test.dummy.client2.hi'
+            account: 'test.dummy.client2.client'
           })
         } ]
       }
@@ -123,7 +123,7 @@ describe('Vouching System', () => {
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
-          account: 'peer.testing.server.downstream_client1.hi'
+          account: 'test.amundsen.client1.client'
         }).toString('base64'),
         noteToSelf: {},
         executionCondition: this.condition.toString('base64'),
@@ -138,7 +138,7 @@ describe('Vouching System', () => {
         amount: '12345',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
-          account: 'peer.testing.server.downstream_client1.hi'
+          account: 'test.amundsen.client1.client'
         }).toString('base64'),
         noteToSelf: {},
         executionCondition: this.condition.toString('base64'),
@@ -153,7 +153,7 @@ describe('Vouching System', () => {
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
-          account: 'peer.testing.server.downstream_client2.hi'
+          account: 'test.amundsen.client2.client'
         }).toString('base64'),
         noteToSelf: {},
         executionCondition: this.condition.toString('base64'),
@@ -197,12 +197,12 @@ describe('Vouching System', () => {
           assert.deepEqual(this.plugin.transfers[0], {
             id: this.plugin.transfers[0].id,
             from: 'test.dummy.dummy-account',
-            to: 'test.dummy.client2.hi',
+            to: 'test.dummy.client2.client',
             ledger: 'test.dummy.',
             amount: '1234',
             ilp: base64url(IlpPacket.serializeIlpPayment({
               amount: '1234',
-              account: 'test.dummy.client2.hi'
+              account: 'test.dummy.client2.client'
             })),
             noteToSelf: {},
             executionCondition: base64url(this.condition),
