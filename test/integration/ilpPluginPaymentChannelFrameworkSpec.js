@@ -1,13 +1,13 @@
 const assert = require('chai').assert
 
 const uuid = require('uuid/v4')
-const PluginDummy = require('./helpers/dummyPlugin')
+const PluginDummy = require('../helpers/dummyPlugin')
 const WebSocket = require('ws')
 
 const IlpPacket = require('ilp-packet')
 const BtpPacket = require('btp-packet')
 
-const TestnetNode = require('../src/index')
+const TestnetNode = require('../../src/index')
 
 const HostedLedgerPlugin = require('ilp-plugin-payment-channel-framework')
 

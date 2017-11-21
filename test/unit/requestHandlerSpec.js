@@ -1,14 +1,14 @@
 const assert = require('chai').assert
 
 const uuid = require('uuid/v4')
-const PluginDummy = require('./helpers/dummyPlugin')
+const PluginDummy = require('../helpers/dummyPlugin')
 const WebSocket = require('ws')
 
 const IlpPacket = require('ilp-packet')
 const BtpPacket = require('btp-packet')
 
-const TestnetNode = require('../src/index')
-const sha256 = require('../src/sha256')
+const TestnetNode = require('../../src/index')
+const sha256 = require('../../src/sha256')
 function base64url (buf) { return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') }
 
 function btpMessagePacket (protocolName, contentType, data, btpVersion) {
