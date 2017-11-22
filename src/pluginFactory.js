@@ -8,7 +8,7 @@ const leAcmeCore = require('le-acme-core')
 const leStoreBot = require('le-store-certbot')
 const WebSocket = require('ws')
 const BtpPacket = require('btp-packet')
-const BtpFrog = require('btp-toolbox').Frog
+const BtpFrog = require('./frog')
 const PeerLedger = require('./peerLedger')
 const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
 
@@ -19,7 +19,7 @@ const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
 // peerInitialBalance
 // baseLedger
 
-function pluginMaker (version, config) {
+function pluginMaker (version, config, main) {
   let myPlugin
   let promise = Promise.resolve()
   if (version === '17q3') {
@@ -34,9 +34,10 @@ function pluginMaker (version, config) {
     const frog = new BtpFrog(peerLedger.getPlugin('client'), (obj) => {
       const msg = BtpPacket.serialize(obj, BtpPacket.BTP_VERSION_ALPHA)
       config.socket.send(msg)
-    }, BtpPacket.BTP_VERSION_ALPHA)
+    }, main, BtpPacket.BTP_VERSION_ALPHA)
     config.socket.on('message', (msg) => {
       const obj = BtpPacket.deserialize(msg, BtpPacket.BTP_VERSION_ALPHA)
+console.log('giving message to frog!', msg, obj)
       frog.handleMessage(obj)
     })
     myPlugin = peerLedger.getPlugin('server')
@@ -120,10 +121,11 @@ function getLetsEncryptServers (domain, email) {
   })
 }
 
-function PluginFactory (config, onPlugin) {
+function PluginFactory (config, onPlugin, main) {
   this.serversToClose = []
   this.config = config
   this.onPlugin = onPlugin
+  this.main = main
   // this.myBaseUrl
 }
 
@@ -163,12 +165,13 @@ PluginFactory.prototype = {
             initialBalancePerPeer: this.config.initialBalancePerPeer,
             baseLedger: this.config.baseLedger,
             authCheck: this.config.authCheck
-          }).then(plugin => {
+          }, this.main).then(plugin => {
             if (!plugin) {
               ws.send('URL path not supported, try /api/17q3/user/pass or /api/17q4')
               ws.close()
               return
             }
+            this.main.plugins[plugin.getInfo().prefix] = plugin
             return plugin.connect().then(() => {
               this.onPlugin(plugin, Buffer.from([ 0, 0, 0, 0, 0, 0, 0, 1]))
             })

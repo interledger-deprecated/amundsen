@@ -115,6 +115,7 @@ class LedgerPlugin extends EventEmitter {
         typeof transfer.executionCondition !== 'string' ||
         typeof transfer.expiresAt !== 'string' ||
         typeof transfer.ilp !== 'string') {
+ console.log('invalid fields!', transfer, this.getInfo().prefix, this.getAccount(), this._getOtherAccount())
       return Promise.reject(new NamedError('invalid fields'))
     }
 

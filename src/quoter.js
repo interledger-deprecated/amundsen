@@ -10,6 +10,7 @@ function findPoint (val, from, to, curveBuf) {
   let prev = [0, 0]
   let next = [0, 0]
   while (next[from] < val) {
+    console.log('while', { val, from, to, cursor, prev, next })
     if (cursor + 15 >= curveBuf.length) {
       throw new Error('amount lies past last curve point')
     }
@@ -83,28 +84,34 @@ Quoter.prototype = {
   },
 
   answerLiquidity (req) {
-    const curve = this.findCurve(req.destinationAccount)
-    return Promise.resolve({
-      liquidityCurve: curve.buf,
-      appliesToPrefix: curve.prefix,
-      sourceHoldDuration: 15000,
-      expiresAt: new Date(Date.now() + 3600 * 1000)
+    return Promise.resolve().then(() => {
+      const curve = this.findCurve(req.destinationAccount)
+      return Promise.resolve({
+        liquidityCurve: curve.buf,
+        appliesToPrefix: curve.prefix,
+        sourceHoldDuration: 15000,
+        expiresAt: new Date(Date.now() + 3600 * 1000)
+      })
     })
   },
 
   answerBySource (req) {
-    const curve = this.findCurve(req.destinationAccount)
-    return Promise.resolve({
-      destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf).toString(),
-      sourceHoldDuration: 3000
+    return Promise.resolve().then(() => {
+      const curve = this.findCurve(req.destinationAccount)
+      return Promise.resolve({
+        destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf).toString(),
+        sourceHoldDuration: 3000
+      })
     })
   },
 
   answerByDest (req) {
-    const curve = this.findCurve(req.destinationAccount)
-    return Promise.resolve({
-      sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf).toString(),
-      sourceHoldDuration: 3000
+    return Promise.resolve().then(() => {
+      const curve = this.findCurve(req.destinationAccount)
+      return Promise.resolve({
+        sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf).toString(),
+        sourceHoldDuration: 3000
+      })
     })
   },
 

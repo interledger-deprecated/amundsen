@@ -32,7 +32,7 @@ class TestnetNode {
   start () {
     const promises = []
     if (this.config.btp) {
-      this.pluginFactory = new PluginFactory(this.config.btp, this.addPlugin.bind(this))
+      this.pluginFactory = new PluginFactory(this.config.btp, this.addPlugin.bind(this), this)
       promises.push(this.pluginFactory.start())
     }
     if (this.config.eth) {
@@ -44,7 +44,11 @@ class TestnetNode {
     return Promise.all(promises)
   }
   stop () {
-    return Promise.resolve()
+    const promises = []
+    if (this.config.btp) {
+      promises.push(this.pluginFactory.stop())
+    }
+    return Promise.all(promises)
   }
 }
 

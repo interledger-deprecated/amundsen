@@ -14,9 +14,11 @@ class Voucher {
     const plugin = this.main.getPlugin(prefix)
     if (plugin.isPrivate) {
       const peerLedger = plugin.getInfo().prefix
+      console.log('adding peerLedger isPrivate', peerLedger)
       // auto-vouch all existing ledger VirtualPeers -> BTP peer
       this.addVouchablePeer(peerLedger)
     } else {
+      console.log('adding address', plugin.getAccount())
       // auto-vouch ledger VirtualPeer -> all existing BTP peers
       this.addVouchableAddress(plugin.getAccount())
       // and add the plugin ledger as a destination in to the routing table:
@@ -38,11 +40,14 @@ class Voucher {
   }
 
   checkVouch (fromAddress, amount) {
+    console.log('checking vouch', fromAddress, amount, this.vouchingMap)
     if (!this.vouchingMap[fromAddress]) {
       return Promise.resolve(false)
     }
+console.log('checking balance', this.vouchingMap[fromAddress], Object.keys(this.main.plugins))
     return this.main.plugins[this.vouchingMap[fromAddress]].getBalance().then(balance => {
-      return new BigNumber(balance).gte(amount)
+console.log('balance is', balance, amount)
+      return new BigNumber(balance).multiply(-1).gte(amount)
     })
   }
 
@@ -55,6 +60,10 @@ class Voucher {
         }
       })
     })
+  }
+
+  rememberIncomingVouch (vouchee, voucher) {
+    this.vouchingMap[vouchee] = voucher
   }
 }
 
