@@ -145,9 +145,10 @@ function btpErrorToLpiError (err) {
   }
 }
 
-function Frog (plugin, send) {
+function Frog (plugin, send, main, btpVersion) {
   this.plugin = plugin
   this.send = send
+  this.main = main
   this.registerPluginEventHandlers()
   this.requestsReceived = {}
 }
@@ -343,6 +344,18 @@ Frog.prototype = {
     })
   },
 
+  _handleVouchMessage (obj, protocolDataAsObj) {
+    const vouchee = protocolDataAsObj.vouch.data.slice(2).toString('utf8')
+    const voucher = this.plugin.getAccount()
+    this.main.voucher.rememberIncomingVouch(vouchee, voucher)
+    this.send({
+      type: BtpPacket.TYPE_ACK,
+      requestId: obj.requestId,
+      data: [
+      ]
+    })
+  },
+
   _handleMessage (obj, primaryProtocol, protocolDataAsObj) {
     switch (primaryProtocol) {
       case 'ilp':
@@ -351,6 +364,8 @@ Frog.prototype = {
         return this._handleInfoMessage(obj, protocolDataAsObj)
       case 'balance':
         return this._handleBalanceMessage(obj, protocolDataAsObj)
+      case 'vouch':
+        return this._handleVouchMessage(obj, protocolDataAsObj)
     }
   },
 

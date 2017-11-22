@@ -169,16 +169,21 @@ describe('Vouching System', () => {
             'vouch',
             BtpPacket.MIME_TEXT_PLAIN_UTF8,
             Buffer.concat([
-              Buffer.from([0, 'test.amundsen.client1'.length]),
-              Buffer.from('test.amundsen.client1', 'ascii')
+              Buffer.from([0, 'test.amundsen.client1.client'.length]),
+              Buffer.from('test.amundsen.client1.client', 'ascii')
             ]), this.clientVersion1)),
           this.client2.send(btpMessagePacket(
             'vouch',
             BtpPacket.MIME_TEXT_PLAIN_UTF8,
             Buffer.concat([
-              Buffer.from([0, 'test.amundsen.client1'.length]),
-              Buffer.from('test.amundsen.client1', 'ascii')
+              Buffer.from([0, 'test.amundsen.client2.client'.length]),
+              Buffer.from('test.amundsen.client2.client', 'ascii')
             ]), this.clientVersion2))
+        ])
+      }).then(() => {
+        return Promise.all([ // TODO: check that these messages are actually ACKS to vouch requests
+          new Promise(resolve => this.client1.on('message', resolve)),
+          new Promise(resolve => this.client2.on('message', resolve))
         ])
       })
     })
@@ -224,33 +229,35 @@ describe('Vouching System', () => {
       }
       this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         assert.equal(rejectionReasonObj.code, 'L53')
-        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
-        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
-        done()
+        Promise.all([
+          this.testnetNode.plugins['test.amundsen.client1.'].getBalance().then(balance => assert.equal(balance, '-10000')),
+          this.testnetNode.plugins['test.amundsen.client2.'].getBalance().then(balance => assert.equal(balance, '-10000'))
+        ]).then(() => done())
       }
       this.plugin.handlers.incoming_prepare(this.lpiTransferTooBig)
     })
 
-///    it('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
-///      this.client1.on('message', (msg) => {
-///        const obj = BtpPacket.deserialize(msg, this.clientVersion1)
-///        if (obj.type === BtpPacket.TYPE_PREPARE) {
-///          this.client2.send(btpAcknowledge(obj.requestId, this.clientVersion1))
-///          this.client2.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, this.clientVersion1))
-///        }
-///      })
-///
-///      this.plugin.successCallback = (transferId, fulfillmentBase64) => {
-///        assert.equal(transferId, this.lpiTransferTo1.id)
-///        assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), this.fulfillment)
-///        assert.equal(this.testnetNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 11234)
-///        assert.equal(this.testnetNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
-///        done()
-///      }
-///      this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
-///        done(rejectionReasonObj)
-///      }
-///      this.plugin.handlers.incoming_prepare(this.lpiTransferTo1)
-///    })
+    it('should accept from vouched wallets on dummy ledger (17q3)', function (done) {
+      this.client1.on('message', (msg) => {
+        const obj = BtpPacket.deserialize(msg, this.clientVersion1)
+        if (obj.type === BtpPacket.TYPE_PREPARE) {
+          this.client1.send(btpAcknowledge(obj.requestId, this.clientVersion1))
+          this.client1.send(btpFulfillPacket(obj.data.transferId, this.fulfillment, this.clientVersion1))
+        }
+      })
+
+      this.plugin.successCallback = (transferId, fulfillmentBase64) => {
+        assert.equal(transferId, this.lpiTransferTo1.id)
+        assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), this.fulfillment)
+        Promise.all([
+          this.testnetNode.plugins['test.amundsen.client1.'].getBalance().then(balance => assert.equal(balance, '-8765')),
+          this.testnetNode.plugins['test.amundsen.client2.'].getBalance().then(balance => assert.equal(balance, '-10000'))
+        ]).then(() => done())
+      }
+      this.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+        done(rejectionReasonObj)
+      }
+      this.plugin.handlers.incoming_prepare(this.lpiTransferTo1)
+    })
   })
 })
