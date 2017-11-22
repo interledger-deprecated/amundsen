@@ -11,9 +11,8 @@ class TransferHandler {
 
   onPlugin (prefix) {
     this.main.getPlugin(prefix).on('incoming_prepare', (transfer) => {
-      console.log('incoming prepare', this.main.getPlugin(prefix).isPrivate, transfer)
       this.main.voucher.checkVouch(transfer.from, transfer.amount).then((answer) => {
-        if (answer) {
+        if (answer || this.main.getPlugin(prefix).isPrivate) {
           const destination = IlpPacket.deserializeIlpPayment(Buffer.from(transfer.ilp, 'base64'))
           const onwardTransfer = this.main.quoter.findHop(destination.account, destination.amount)
           const onwardPlugin = this.main.getPlugin(onwardTransfer.ledger)
