@@ -346,7 +346,7 @@ Frog.prototype = {
 
   _handleVouchMessage (obj, protocolDataAsObj) {
     const vouchee = protocolDataAsObj.vouch.data.slice(2).toString('utf8')
-    const voucher = this.plugin.getAccount()
+    const voucher = this.plugin.getInfo().prefix
     this.main.voucher.rememberIncomingVouch(vouchee, voucher)
     this.send({
       type: BtpPacket.TYPE_ACK,

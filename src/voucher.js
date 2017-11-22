@@ -46,7 +46,8 @@ class Voucher {
     }
 console.log('checking balance', this.vouchingMap[fromAddress], Object.keys(this.main.plugins))
     return this.main.plugins[this.vouchingMap[fromAddress]].getBalance().then(balance => {
-      return new BigNumber(balance).gte(amount)
+console.log('balance is', balance, amount)
+      return new BigNumber(balance).multiply(-1).gte(amount)
     })
   }
 

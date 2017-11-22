@@ -171,7 +171,7 @@ PluginFactory.prototype = {
               ws.close()
               return
             }
-            this.main.plugins[plugin.getAccount()] = plugin
+            this.main.plugins[plugin.getInfo().prefix] = plugin
             return plugin.connect().then(() => {
               this.onPlugin(plugin, Buffer.from([ 0, 0, 0, 0, 0, 0, 0, 1]))
             })

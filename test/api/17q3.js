@@ -117,9 +117,9 @@ describe('Vouching System', () => {
       // These are ledger plugin interface format, will be used in incoming_prepare event:
       this.lpiTransferTo1 = {
         id: uuid(),
-        from: 'test.amundsen.client1.client',
-        to: 'test.amundsen.client1.server',
-        ledger: 'test.amundsen.client1.',
+        from: 'test.dummy.some-punter',
+        to: 'test.dummy.dummy-account',
+        ledger: 'test.dummy.',
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -132,7 +132,7 @@ describe('Vouching System', () => {
       }
       this.lpiTransferTooBig = {
         id: uuid(),
-        from: 'test.dummy.client1.client',
+        from: 'test.dummy.some-punter',
         to: 'test.dummy.dummy-account',
         ledger: 'test.dummy.',
         amount: '12345',
@@ -147,9 +147,9 @@ describe('Vouching System', () => {
       }
       this.lpiTransferTo2 = {
         id: uuid(),
-        from: 'test.amundsen.client1.client',
-        to: 'test.amundsen.client1.server',
-        ledger: 'test.amundsen.client1.',
+        from: 'test.dummy.some-punter',
+        to: 'test.dummy.dummy-account',
+        ledger: 'test.dummy.',
         amount: '1234',
         ilp: IlpPacket.serializeIlpPayment({
           amount: '1234',
@@ -169,15 +169,15 @@ describe('Vouching System', () => {
             'vouch',
             BtpPacket.MIME_TEXT_PLAIN_UTF8,
             Buffer.concat([
-              Buffer.from([0, 'test.amundsen.client1.client'.length]),
-              Buffer.from('test.amundsen.client1.client', 'ascii')
+              Buffer.from([0, 'test.dummy.some-punter'.length]),
+              Buffer.from('test.dummy.some-punter', 'ascii')
             ]), this.clientVersion1)),
           this.client2.send(btpMessagePacket(
             'vouch',
             BtpPacket.MIME_TEXT_PLAIN_UTF8,
             Buffer.concat([
-              Buffer.from([0, 'test.amundsen.client2.client'.length]),
-              Buffer.from('test.amundsen.client2.client', 'ascii')
+              Buffer.from([0, 'test.dummy.another-punter'.length]),
+              Buffer.from('test.dummy.another-punter', 'ascii')
             ]), this.clientVersion2))
         ])
       }).then(() => {
@@ -191,37 +191,37 @@ describe('Vouching System', () => {
       return Promise.all([ this.client1.close(), this.client2.close() ])
     })
 
-//    it('should deliver BTP to dummy ledger (17q3)', function (done) {
-//      let acked = false
-//      this.client1.on('message', (msg) => {
-//        const obj = BtpPacket.deserialize(msg, this.clientVersion1)
-//        if (obj.type === BtpPacket.TYPE_ACK) {
-//          acked = true
-//        } else {
-//          assert.equal(acked, true)
-//          assert.deepEqual(this.plugin.transfers[0], {
-//            id: this.plugin.transfers[0].id,
-//            from: 'test.dummy.dummy-account',
-//            to: 'test.dummy.client2.client',
-//            ledger: 'test.dummy.',
-//            amount: '1234',
-//            ilp: base64url(IlpPacket.serializeIlpPayment({
-//              amount: '1234',
-//              account: 'test.dummy.client2.client'
-//            })),
-//            noteToSelf: {},
-//            executionCondition: base64url(this.condition),
-//            expiresAt: this.plugin.transfers[0].expiresAt,
-//            custom: {}
-//          })
-//          Promise.all([
-//            this.testnetNode.plugins['test.amundsen.client1.'].getBalance().then(balance => assert.equal(balance, '-8765')),
-//            this.testnetNode.plugins['test.amundsen.client2.'].getBalance().then(balance => assert.equal(balance, '-10000'))
-//          ]).then(() => done())
-//        }
-//      })
-//      this.client1.send(btpPreparePacket(this.transfer, this.clientVersion1))
-//    })
+    it('should deliver BTP to dummy ledger (17q3)', function (done) {
+      let acked = false
+      this.client1.on('message', (msg) => {
+        const obj = BtpPacket.deserialize(msg, this.clientVersion1)
+        if (obj.type === BtpPacket.TYPE_ACK) {
+          acked = true
+        } else {
+          assert.equal(acked, true)
+          assert.deepEqual(this.plugin.transfers[0], {
+            id: this.plugin.transfers[0].id,
+            from: 'test.dummy.dummy-account',
+            to: 'test.dummy.client2.client',
+            ledger: 'test.dummy.',
+            amount: '1234',
+            ilp: base64url(IlpPacket.serializeIlpPayment({
+              amount: '1234',
+              account: 'test.dummy.client2.client'
+            })),
+            noteToSelf: {},
+            executionCondition: base64url(this.condition),
+            expiresAt: this.plugin.transfers[0].expiresAt,
+            custom: {}
+          })
+          Promise.all([
+            this.testnetNode.plugins['test.amundsen.client1.'].getBalance().then(balance => assert.equal(balance, '-8765')),
+            this.testnetNode.plugins['test.amundsen.client2.'].getBalance().then(balance => assert.equal(balance, '-10000'))
+          ]).then(() => done())
+        }
+      })
+      this.client1.send(btpPreparePacket(this.transfer, this.clientVersion1))
+    })
 
     it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
       this.plugin.successCallback = (transferId, fulfillmentBase64) => {
@@ -250,7 +250,7 @@ describe('Vouching System', () => {
         assert.equal(transferId, this.lpiTransferTo1.id)
         assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), this.fulfillment)
         Promise.all([
-          this.testnetNode.plugins['test.amundsen.client1.'].getBalance().then(balance => assert.equal(balance, '-8765')),
+          this.testnetNode.plugins['test.amundsen.client1.'].getBalance().then(balance => assert.equal(balance, '-11234')),
           this.testnetNode.plugins['test.amundsen.client2.'].getBalance().then(balance => assert.equal(balance, '-10000'))
         ]).then(() => done())
       }
