@@ -10,7 +10,7 @@ const WebSocket = require('ws')
 const BtpPacket = require('btp-packet')
 const BtpFrog = require('./frog')
 const PeerLedger = require('./peerLedger')
-const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
+const Plugin17q4 = require('ilp-plugin-xrp-paychan')
 
 // config contains: 
 // socket
@@ -57,7 +57,12 @@ function pluginMaker (version, config, main) {
         get: (k) => Promise.resolve(store[k]),
         put: (k, v) => { store[k] = v; return Promise.resolve() },
         del: (k) => { delete store[k]; return Promise.resolve() }
-      }
+      },
+      rippledServer: 'wss://s.altnet.rippletest.net:51233',
+      address: 'r33L6z6LMD8Lk39iEQhyXeSWqNN7pFVaM6',
+      secret: 'ssyFYib1wv4tKrYfQEARxGREH6T3b',
+      maxUnsecured: '50000',
+      maxAmount: '10000000',
     })
     promise = myPlugin.addSocket(config.socket)
   }
