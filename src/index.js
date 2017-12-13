@@ -24,7 +24,37 @@ class TestnetNode {
       this.voucher.onPlugin(prefix)
       this.requestHandler.onPlugin(prefix)
       this.transferHandler.onPlugin(prefix)
+      // now that a new plugin was added, announce all routes to all connectors on all plugins:
+      for (let peerPlugin in this.plugins) {
+        this.announceRoutes(this.quoter.getRoutesForPeer(peerPlugin), peer)
+      }
     })
+  }
+  announceRoutes(routes, peer) {
+    return Promise.all(this.plugins[peer].getInfo().connectors.map(connector => {
+      return this.plugins[peer].sendRequest({
+         ledger: this.plugins[peer].getInfo().prefix,
+         from: this.plugins[peer].getAccount(),
+         to: connector,
+         custom: {
+           method: 'broadcast_routes',
+           data: {
+             new_routes: routes.map(route => {
+               return {
+                 source_ledger: this.plugins[peer].getInfo().prefix,
+                 destination_ledger: route.destination_ledger,
+                 points: route.points,
+                 min_message_window: 1,
+                 paths: [ [] ],
+                 source_account: this.plugins[peer].getAccount()
+               }
+            })
+          }
+          hold_down_time: 600000,
+          unreachable_through_me: []
+        }
+      })
+    }))
   }
   getPlugin (prefix) {
     return this.plugins[prefix]
