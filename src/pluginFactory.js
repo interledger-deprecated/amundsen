@@ -73,13 +73,14 @@ const URL_PATH_PART_TOKEN = 4
 
 const WELCOME_TEXT = '<a href="https://github.com/interledgerjs/amundsen"><h2>This is a BTP server, please upgrade to WebSockets.</h2><img src="https://oceanwide-4579.kxcdn.com/uploads/media-dynamic/cache/jpg_optimize/uploads/media/default/0001/09/thumb_8845_default_1600.jpeg"></a>'
 const LE_ROOT = '~/letsencrypt'
-const HTTP_REDIRECT_PORT = 80
-const HTTPS_PORT = 443
+const HTTP_REDIRECT_PORT = 8080
+const HTTPS_PORT = 4430
 
 // This function starts a TLS webserver on HTTPS_PORT, with on-the-fly LetsEncrypt cert registration.
 // It also starts a redirect server on HTTP_REDIRECT_PORT, which GreenLock uses for the ACME challenge.
 // Certificates and temporary files are stored in LE_ROOT
 function getLetsEncryptServers (domain, email) {
+return Promise.resolve([])
   let httpServer
   const le = LE.create({
     // server: 'staging',

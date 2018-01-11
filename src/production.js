@@ -27,6 +27,9 @@ let config = {
     server: 'wss://s.altnet.rippletest.net:51233',
     prefix: 'test.crypto.xrp.'
     // rate to be added by getRates()
+  },
+  bmp: {
+    port: 1801
   }
 }
 

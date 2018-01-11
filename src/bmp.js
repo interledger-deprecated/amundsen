@@ -2,6 +2,7 @@
 const IlpConnector = require('ilp-connector')
 
 module.exports.launch = function (bmpConfig) {
+console.log('creating app!')
   const connector = IlpConnector.createApp({
     ilpAddress: 'test.amundsen.bmp',
     accounts: {
@@ -28,7 +29,9 @@ module.exports.launch = function (bmpConfig) {
     spread: 0,
     storePath: './data'
   })
+console.log('app created!')
   return connector.listen().then(() => {
+    console.log(connector.getPlugin('restOfAmundsen').oldPlugin.isConnected(), connector.getPlugin('btp18q1').isConnected())
     return connector.getPlugin('restOfAmundsen').oldPlugin.mirror
   })
 }
