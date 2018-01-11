@@ -29,6 +29,6 @@ module.exports.launch = function (bmpConfig) {
     storePath: './data'
   })
   return connector.listen().then(() => {
-    return connector.getPlugin('restOfAmundsen').oldPlugin.mirror)
+    return connector.getPlugin('restOfAmundsen').oldPlugin.mirror
   })
 }

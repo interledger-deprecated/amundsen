@@ -13,7 +13,7 @@
     "ilp-connector": "github:interledgerjs/ilp-connector#refactor/st-lpi2",
     "ilp-packet": "^1.3.0",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum",
-    "ilp-plugin-mirror": "github:michielbdejong/ilp-plugin-mirror",
+    "ilp-plugin-mirror-v1": "github:michielbdejong/ilp-plugin-mirror-v1",
     "ilp-plugin-payment-channel-framework": "github:interledgerjs/ilp-plugin-payment-channel-framework",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow",
     "node-fetch": "^1.7.3",

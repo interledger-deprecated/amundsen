@@ -37,7 +37,7 @@ class TestnetNode {
       promises.push(this.pluginFactory.start())
     }
     if (this.config.bmp) {
-      promises.push(Bmp.launch(this.config.bmp).then(bmpPlugin => this.addPlugin(bmpPlugin, this.config.bmp.rate))
+      promises.push(Bmp.launch(this.config.bmp).then(bmpPlugin => this.addPlugin(bmpPlugin, this.config.bmp.rate)))
     }
     if (this.config.eth) {
       promises.push(this.addPlugin(new PluginEth(this.config.eth), this.config.eth.rate))
