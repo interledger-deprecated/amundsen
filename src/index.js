@@ -1,5 +1,6 @@
 const PluginXrp = require('ilp-plugin-xrp-escrow')
 const PluginEth = require('ilp-plugin-ethereum')
+const Bmp = require('./bmp')
 const PluginFactory = require('./pluginFactory')
 const RequestHandler = require('./request-handler')
 const TransferHandler = require('./transfer-handler')
@@ -34,6 +35,9 @@ class TestnetNode {
     if (this.config.btp) {
       this.pluginFactory = new PluginFactory(this.config.btp, this.addPlugin.bind(this))
       promises.push(this.pluginFactory.start())
+    }
+    if (this.config.bmp) {
+      promises.push(Bmp.launch(this.config.bmp).then(bmpPlugin => this.addPlugin(bmpPlugin, this.config.bmp.rate))
     }
     if (this.config.eth) {
       promises.push(this.addPlugin(new PluginEth(this.config.eth), this.config.eth.rate))
