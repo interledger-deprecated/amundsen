@@ -20,6 +20,7 @@ class TestnetNode {
   addPlugin (plugin, rate) {
     const prefix = plugin.getInfo().prefix
     return plugin.connect().then(() => {
+      // console.log('addPlugin', plugin, rate, 'connected now!')
       this.plugins[prefix] = plugin
       this.quoter.onPlugin(prefix, rate)
       this.voucher.onPlugin(prefix)
@@ -37,7 +38,10 @@ class TestnetNode {
       promises.push(this.pluginFactory.start())
     }
     if (this.config.bmp) {
-      promises.push(Bmp.launch(this.config.bmp).then(bmpPlugin => this.addPlugin(bmpPlugin, this.config.bmp.rate)))
+      promises.push(Bmp.launch(this.config.bmp).then(bmpPlugin => {
+        // console.log('got bmp plugin! adding it')
+        this.addPlugin(bmpPlugin, this.config.bmp.rate)
+      }))
     }
     if (this.config.eth) {
       promises.push(this.addPlugin(new PluginEth(this.config.eth), this.config.eth.rate))
