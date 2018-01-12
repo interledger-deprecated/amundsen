@@ -1,7 +1,7 @@
 'use strict'
 const IlpConnector = require('ilp-connector')
 
-module.exports.launch = function (bmpConfig) {
+module.exports.makeBmpPlugin = function (server) {
 console.log('creating app!')
   const connector = IlpConnector.createApp({
     ilpAddress: 'test.amundsen.bmp',
@@ -22,7 +22,11 @@ console.log('creating app!')
         assetScale: 6,
         assetCode: 'XRP',
         plugin: 'ilp-plugin-mini-accounts',
-        options: bmpConfig
+        options: {
+          wsOpts: {
+            server
+          }
+        }
       }
     },
     backend: 'one-to-one',

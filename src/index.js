@@ -18,6 +18,7 @@ class TestnetNode {
     this.transferHandler = new TransferHandler(this)
   }
   addPlugin (plugin, rate) {
+    // console.log('addPlugin', plugin, rate)
     const prefix = plugin.getInfo().prefix
     return plugin.connect().then(() => {
       // console.log('addPlugin', plugin, rate, 'connected now!')
@@ -36,12 +37,6 @@ class TestnetNode {
     if (this.config.btp) {
       this.pluginFactory = new PluginFactory(this.config.btp, this.addPlugin.bind(this))
       promises.push(this.pluginFactory.start())
-    }
-    if (this.config.bmp) {
-      promises.push(Bmp.launch(this.config.bmp).then(bmpPlugin => {
-        // console.log('got bmp plugin! adding it')
-        this.addPlugin(bmpPlugin, this.config.bmp.rate)
-      }))
     }
     if (this.config.eth) {
       promises.push(this.addPlugin(new PluginEth(this.config.eth), this.config.eth.rate))

@@ -5,14 +5,16 @@ const uint64be = require('uint64be')
 const COINMARKETCAP_API = 'https://api.coinmarketcap.com/v1/ticker/'
 
 let config = {
-//  btp: {
-//    tls: 'amundsen.michielbdejong.com',
-//    initialBalancePerPeer: 10000,
-//    baseLedger: 'test.amundsen.',
-//    authCheck: function (username, token) {
-//      return true
-//    }
-//  },
+  btp: {
+    // tls: 'amundsen.michielbdejong.com',
+    listen: 8080,
+    initialBalancePerPeer: 10000,
+    baseLedger: 'test.amundsen.',
+    authCheck: function (username, token) {
+      return true
+    },
+    bmpPort: 1801 // not very clean to have this nested inside the btp config, but the bmp server uses the same LE certs
+  },
 //  eth: {
 //    secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',
 //    account: '0x' + 'fa5b9836c46b6559be750b2f3c12657081fab858'.toUpperCase(),
@@ -27,11 +29,7 @@ let config = {
 //    server: 'wss://s.altnet.rippletest.net:51233',
 //    prefix: 'test.crypto.xrp.'
 //    // rate to be added by getRates()
-//  },
-  bmp: {
-    port: 1801,
-    rate: uint64be.encode(1)
-  }
+//  }
 }
 
 function getRates() {

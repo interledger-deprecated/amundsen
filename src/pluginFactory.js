@@ -11,6 +11,7 @@ const BtpPacket = require('btp-packet')
 const BtpFrog = require('btp-toolbox').Frog
 const PeerLedger = require('./peerLedger')
 const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
+const Bmp = require('./bmp')
 
 // config contains: 
 // socket
@@ -79,8 +80,7 @@ const HTTPS_PORT = 4430
 // This function starts a TLS webserver on HTTPS_PORT, with on-the-fly LetsEncrypt cert registration.
 // It also starts a redirect server on HTTP_REDIRECT_PORT, which GreenLock uses for the ACME challenge.
 // Certificates and temporary files are stored in LE_ROOT
-function getLetsEncryptServers (domain, email) {
-return Promise.resolve([])
+function getLetsEncryptServers (domain, email, bmpPort) {
   let httpServer
   const le = LE.create({
     // server: 'staging',
@@ -102,22 +102,31 @@ return Promise.resolve([])
       domains: [ domain ]
     })
   }).then(function (certs) {
+    function makeHttpsServer(certs, port) {
+      return new Promise((resolve, reject) => {
+        const httpsServer = https.createServer({
+          key: certs.privkey,
+          cert: certs.cert,
+          ca: certs.chain
+        }, (req, res) => {
+          res.writeHead(200, { 'Content-Type': 'text/html' })
+          res.end(WELCOME_TEXT)
+        })
+        httpsServer.listen(port, (err) => {
+          if (err) { reject(err) } else { resolve(httpsServer) }
+        })
+      })
+    }
+
     if (!certs) {
       throw new Error('Should have acquired certificate for domains.')
     }
-    return new Promise((resolve, reject) => {
-      const httpsServer = https.createServer({
-        key: certs.privkey,
-        cert: certs.cert,
-        ca: certs.chain
-      }, (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/html' })
-        res.end(WELCOME_TEXT)
-      })
-      httpsServer.listen(HTTPS_PORT, (err) => {
-        if (err) { reject(err) } else { resolve([ httpsServer, httpServer ]) }
-      })
-    })
+
+    return Promise.all([
+      Promise.resolve(httpServer),
+      makeHttpsServer(certs, HTTPS_PORT),
+      makeHttpsServer(certs, bmpPort) // third server is bmp server
+    ])
   })
 }
 
@@ -130,23 +139,42 @@ function PluginFactory (config, onPlugin) {
 
 PluginFactory.prototype = {
   getServers () {
-    // case 1: use LetsEncrypt => [https, http]
+    // case 1: use LetsEncrypt => [http, httpsMain, httpsBmp]
     if (this.config.tls) {
       this.myBaseUrl = 'wss://' + this.config.tls
       return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`)
     }
 
-    // case 2: don't run a server => []
-    if (typeof this.config.listen !== 'number') {
-      return Promise.resolve([])
+    // case 2: listen without TLS on a port => [httpMain, httpBmp]
+    const promises = []
+    if (typeof this.config.listen === 'number') {
+      const server = http.createServer((req, res) => {
+        res.end(WELCOME_TEXT)
+      })
+      promises.push(new Promise(resolve => server.listen(this.config.listen, resolve(server))))
+      this.myBaseUrl = 'ws://localhost:' + this.config.listen
     }
 
-    // case 3: listen without TLS on a port => [http]
-    this.myBaseUrl = 'ws://localhost:' + this.config.listen
-    const server = http.createServer((req, res) => {
-      res.end(WELCOME_TEXT)
+    if (typeof this.config.bmpPort === 'number') {
+      const server = http.createServer((req, res) => {
+        res.end(WELCOME_TEXT)
+      })
+      promises.push(new Promise(resolve => server.listen(this.config.bmpPort, resolve(server))).then(server => {
+        this._startBmp(server)
+        return server
+      }))
+    }
+    return Promise.all(promises)
+  },
+
+  _startBmp (server) {
+    // console.log('starting bmp', server)
+    return Bmp.makeBmpPlugin(server).then(plugin => {
+      this.onPlugin(plugin, Buffer.from([
+        0, 0, 0, 0,
+        0, 0, 0, 1
+      ]))
     })
-    return new Promise(resolve => server.listen(this.config.listen, resolve([ server ])))
   },
 
   start () {
