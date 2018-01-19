@@ -6,8 +6,8 @@ const COINMARKETCAP_API = 'https://api.coinmarketcap.com/v1/ticker/'
 
 let config = {
   btp: {
-    // tls: 'amundsen.michielbdejong.com',
-    listen: 8080,
+    tls: 'amundsen.ilpdemo.org',
+    // listen: 8080,
     initialBalancePerPeer: 10000,
     baseLedger: 'test.amundsen.',
     authCheck: function (username, token) {
