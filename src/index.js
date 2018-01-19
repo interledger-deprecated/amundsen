@@ -1,5 +1,6 @@
 const PluginXrp = require('ilp-plugin-xrp-escrow')
 const PluginEth = require('ilp-plugin-ethereum')
+const Bmp = require('./bmp')
 const PluginFactory = require('./pluginFactory')
 const RequestHandler = require('./request-handler')
 const TransferHandler = require('./transfer-handler')
@@ -17,8 +18,10 @@ class TestnetNode {
     this.transferHandler = new TransferHandler(this)
   }
   addPlugin (plugin, rate) {
+    // console.log('addPlugin', plugin, rate)
     const prefix = plugin.getInfo().prefix
     return plugin.connect().then(() => {
+      // console.log('addPlugin', plugin, rate, 'connected now!')
       this.plugins[prefix] = plugin
       this.quoter.onPlugin(prefix, rate)
       this.voucher.onPlugin(prefix)
