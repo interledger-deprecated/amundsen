@@ -13,6 +13,8 @@ const PeerLedger = require('./peerLedger')
 const Plugin17q4 = require('ilp-plugin-payment-channel-framework')
 const Bmp = require('./bmp')
 
+const SERVER_THAT_GETS_TO_SERVE_BTP = 0
+
 // config contains: 
 // socket
 // name
@@ -74,8 +76,8 @@ const URL_PATH_PART_TOKEN = 4
 
 const WELCOME_TEXT = '<a href="https://github.com/interledgerjs/amundsen"><h2>This is a BTP server, please upgrade to WebSockets.</h2><img src="https://oceanwide-4579.kxcdn.com/uploads/media-dynamic/cache/jpg_optimize/uploads/media/default/0001/09/thumb_8845_default_1600.jpeg"></a>'
 const LE_ROOT = '~/letsencrypt'
-const HTTP_REDIRECT_PORT = 8080
-const HTTPS_PORT = 4430
+const HTTP_REDIRECT_PORT = 80
+const HTTPS_PORT = 443
 
 // This function starts a TLS webserver on HTTPS_PORT, with on-the-fly LetsEncrypt cert registration.
 // It also starts a redirect server on HTTP_REDIRECT_PORT, which GreenLock uses for the ACME challenge.
@@ -123,8 +125,8 @@ function getLetsEncryptServers (domain, email, bmpPort) {
     }
 
     return Promise.all([
+      makeHttpsServer(certs, HTTPS_PORT), // SERVER_THAT_GETS_TO_SERVE_BTP = 0
       Promise.resolve(httpServer),
-      makeHttpsServer(certs, HTTPS_PORT),
       makeHttpsServer(certs, bmpPort) // third server is bmp server
     ])
   })
@@ -139,13 +141,16 @@ function PluginFactory (config, onPlugin) {
 
 PluginFactory.prototype = {
   getServers () {
-    // case 1: use LetsEncrypt => [http, httpsMain, httpsBmp]
+    // case 1: use LetsEncrypt => [httpsMain, http, httpsBmp] 
+    // SERVER_THAT_GETS_TO_SERVE_BTP = 0
     if (this.config.tls) {
       this.myBaseUrl = 'wss://' + this.config.tls
+      console.log('tls-ing it!', this.config.tls)
       return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`)
     }
 
     // case 2: listen without TLS on a port => [httpMain, httpBmp]
+    // SERVER_THAT_GETS_TO_SERVE_BTP = 0
     const promises = []
     if (typeof this.config.listen === 'number') {
       const server = http.createServer((req, res) => {
@@ -179,11 +184,14 @@ PluginFactory.prototype = {
 
   start () {
     return this.getServers().then(servers => {
+      console.log('got servers!', servers)
       this.serversToClose = servers
       if (servers.length) {
-        this.wss = new WebSocket.Server({ server: servers[0] })
+        // SERVER_THAT_GETS_TO_SERVE_BTP = 0
+        this.wss = new WebSocket.Server({ server: servers[SERVER_THAT_GETS_TO_SERVE_BTP] })
         this.serversToClose.push(this.wss)
         this.wss.on('connection', (ws, httpReq) => {
+          console.log('ws connectoin!', httpReq.url)
           const parts = httpReq.url.split('/')
           pluginMaker(parts[URL_PATH_PART_VERSION], {
             name: parts[URL_PATH_PART_NAME],
