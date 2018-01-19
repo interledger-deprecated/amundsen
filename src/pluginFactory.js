@@ -146,7 +146,7 @@ PluginFactory.prototype = {
     if (this.config.tls) {
       this.myBaseUrl = 'wss://' + this.config.tls
       console.log('tls-ing it!', this.config.tls)
-      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`).then(servers => {
+      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`, this.config.bmpPort).then(servers => {
         if (servers.length === 3) {
           this._startBmp(servers[2])
         }
