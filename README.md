@@ -7,8 +7,7 @@ plugin-virtual instances when a client connects.
 ```sh
 $ ssh root@amundsen.michielbdejong.com # Ask Michiel, Evan, Dennis, Ben, or Stefan for access in https://gitter.im/interledger/testnet-of-testnets
 >$ history # Always a good idea when ssh-ing into a server you which didn't configure yourself! :)
->$ cd amundsen
->$ pm2 list
+>$ screen -rd amundsen # Amundsen didn't want to stay up under pm2 for some reason so now it's running in a screen
 ```
 
 ## Ways to interact with Amundsen
