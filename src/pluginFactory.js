@@ -146,7 +146,12 @@ PluginFactory.prototype = {
     if (this.config.tls) {
       this.myBaseUrl = 'wss://' + this.config.tls
       console.log('tls-ing it!', this.config.tls)
-      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`)
+      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`).then(servers => {
+        if (servers.length === 3) {
+          this._startBmp(servers[2])
+        }
+        return servers
+      })
     }
 
     // case 2: listen without TLS on a port => [httpMain, httpBmp]
