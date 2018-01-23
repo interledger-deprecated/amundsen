@@ -11,7 +11,7 @@
     "eventemitter2": "^4.1.2",
     "greenlock": "^2.1.16",
     "ilp-connector": "github:interledgerjs/ilp-connector",
-    "ilp-packet": "^1.7.0",
+    "ilp-packet": "^2.1.2",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum",
     "ilp-plugin-mini-accounts": "github:interledgerjs/ilp-plugin-mini-accounts#mj-engine-version",
     "ilp-plugin-mirror-v1": "github:michielbdejong/ilp-plugin-mirror-v1",
@@ -28,8 +28,8 @@
     "eslint-plugin-node": "^5.1.0",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^3.0.1",
-    "ilp-plugin-http-head": "github:michielbdejong/ilp-plugin-http-head#mj-handle",
-    "ilp-plugin-http-oer": "github:michielbdejong/ilp-plugin-http-oer#mj-handle",
+    "ilp-plugin-http-head": "github:michielbdejong/ilp-plugin-http-head",
+    "ilp-plugin-http-oer": "github:michielbdejong/ilp-plugin-http-oer",
     "mocha": "^3.4.1"
   },
   "scripts": {
