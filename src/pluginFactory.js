@@ -104,16 +104,13 @@ function getLetsEncryptServers (domain, email, bmpPort) {
       domains: [ domain ]
     })
   }).then(function (certs) {
-    function makeHttpsServer(certs, port) {
+    function makeHttpsServer(certs, port, handler) {
       return new Promise((resolve, reject) => {
         const httpsServer = https.createServer({
           key: certs.privkey,
           cert: certs.cert,
           ca: certs.chain
-        }, (req, res) => {
-          res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end(WELCOME_TEXT)
-        })
+        }, handler)
         httpsServer.listen(port, (err) => {
           if (err) { reject(err) } else { resolve(httpsServer) }
         })
@@ -125,9 +122,12 @@ function getLetsEncryptServers (domain, email, bmpPort) {
     }
 
     return Promise.all([
-      makeHttpsServer(certs, HTTPS_PORT), // SERVER_THAT_GETS_TO_SERVE_BTP = 0
+      makeHttpsServer(certs, HTTPS_PORT, (req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        res.end(WELCOME_TEXT)
+      }), // SERVER_THAT_GETS_TO_SERVE_BTP = 0
       Promise.resolve(httpServer),
-      makeHttpsServer(certs, bmpPort) // third server is bmp server
+      makeHttpsServer(certs, bmpPort, undefined) // third server is bmp server
     ])
   })
 }
