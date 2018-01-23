@@ -1,6 +1,5 @@
 const PluginXrp = require('ilp-plugin-xrp-escrow')
 const PluginEth = require('ilp-plugin-ethereum')
-const Bmp = require('./bmp')
 const PluginFactory = require('./pluginFactory')
 const RequestHandler = require('./request-handler')
 const TransferHandler = require('./transfer-handler')

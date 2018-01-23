@@ -166,9 +166,7 @@ PluginFactory.prototype = {
     }
 
     if (typeof this.config.bmpPort === 'number') {
-      const server = http.createServer((req, res) => {
-        res.end(WELCOME_TEXT)
-      })
+      const server = http.createServer()
       promises.push(new Promise(resolve => server.listen(this.config.bmpPort, resolve(server))).then(server => {
         this._startBmp(server)
         return server
@@ -179,11 +177,20 @@ PluginFactory.prototype = {
 
   _startBmp (server) {
     // console.log('starting bmp', server)
-    return Bmp.makeBmpPlugin(server).then(plugin => {
-      this.onPlugin(plugin, Buffer.from([
+    return Bmp.makeBmpPlugin(server).then(plugins => {
+      this.onPlugin(plugins.restOfAmundsen, Buffer.from([
         0, 0, 0, 0,
         0, 0, 0, 1
       ]))
+      server.on('request', (req, res) => {
+        if (req.url === '/oer') {
+          return plugins.httpOer.handle(req, res)
+        }
+        if (req.url === '/head') {
+          return plugins.httpHead.handle(req, res)
+        }
+        res.end(WELCOME_TEXT)
+      })
     })
   },
 

@@ -27,6 +27,20 @@ console.log('creating app!')
             server
           }
         }
+      },
+      httpHead: {
+        relation: 'child',
+        assetScale: 9,
+        assetCode: 'USD',
+        plugin: 'ilp-plugin-http-head',
+        options: { }
+      },
+      httpOer: {
+        relation: 'child',
+        assetScale: 9,
+        assetCode: 'USD',
+        plugin: 'ilp-plugin-http-oer',
+        options: { }
       }
     },
     backend: 'one-to-one',
@@ -36,6 +50,10 @@ console.log('creating app!')
 console.log('app created!')
   return connector.listen().then(() => {
     console.log(connector.getPlugin('restOfAmundsen').oldPlugin.isConnected(), connector.getPlugin('btp18q1').isConnected())
-    return connector.getPlugin('restOfAmundsen').oldPlugin.mirror
+    return {
+      restOfAmundsen: connector.getPlugin('restOfAmundsen').oldPlugin.mirror,
+      httpHead: connector.getPlugin('httpHead'),
+      httpOer: connector.getPlugin('httpOer')
+    }
   })
 }

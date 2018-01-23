@@ -28,6 +28,7 @@
     "eslint-plugin-node": "^5.1.0",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^3.0.1",
+    "ilp-plugin-http": "github:michielbdejong/ilp-plugin-http-oer#mj-handle",
     "mocha": "^3.4.1"
   },
   "scripts": {
