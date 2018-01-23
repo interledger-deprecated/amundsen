@@ -183,13 +183,13 @@ PluginFactory.prototype = {
         0, 0, 0, 1
       ]))
       server.on('request', (req, res) => {
-        if (req.url === '/oer') {
-          return plugins.httpOer.handle(req, res)
-        }
+        // ILP-over-HTTP with headers is deprecated, going forward,
+        // we will only support proper OER-encoded Interleder packets
         if (req.url === '/head') {
           return plugins.httpHead.handle(req, res)
         }
-        res.end(WELCOME_TEXT)
+
+        return plugins.httpOer.handle(req, res)
       })
     })
   },
