@@ -26,6 +26,10 @@ console.log('creating app!')
           wsOpts: {
             server
           }
+        },
+        balance: {
+          settleThreshold: 1,
+          settleTo: 0
         }
       },
       httpHead: {
