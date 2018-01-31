@@ -13,7 +13,7 @@
     "ilp-connector": "github:interledgerjs/ilp-connector",
     "ilp-packet": "^2.1.2",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum",
-    "ilp-plugin-mini-accounts": "github:interledgerjs/ilp-plugin-mini-accounts#mj-engine-version",
+    "ilp-plugin-mini-accounts": "github:interledgerjs/ilp-plugin-mini-accounts#mj-sendMoney",
     "ilp-plugin-mirror-v1": "github:michielbdejong/ilp-plugin-mirror-v1",
     "ilp-plugin-payment-channel-framework": "github:interledgerjs/ilp-plugin-payment-channel-framework",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow",

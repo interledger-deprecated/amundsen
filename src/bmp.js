@@ -28,8 +28,9 @@ console.log('creating app!')
           }
         },
         balance: {
-          settleThreshold: 1,
-          settleTo: 0
+          maximum: 'Infinity',
+          settleThreshold: '1',
+          settleTo: '0'
         }
       },
       httpHead: {
