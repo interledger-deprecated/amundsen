@@ -13,7 +13,8 @@ let config = {
     authCheck: function (username, token) {
       return true
     },
-    bmpPort: 1801 // not very clean to have this nested inside the btp config, but the bmp server uses the same LE certs
+    bmpBasePort: 1810, // not very clean to have this nested inside the btp config, but the bmp servers use the same LE certs
+    bmpLegacyPort: 1801 // even less clean ;)
   },
 //  eth: {
 //    secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',
