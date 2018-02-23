@@ -111,7 +111,7 @@ Quoter.prototype = {
   findHop (address, amount) {
     const curve = this.findCurve(address)
     return {
-      amount: destToSource(parseInt(amount), curve.buf).toString(),
+      amount: (amount ? destToSource(parseInt(amount), curve.buf).toString() : undefined),
       ledger: curve.peer,
       to: address // final hop
     }

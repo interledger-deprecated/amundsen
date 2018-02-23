@@ -2,6 +2,7 @@ const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
 const MIN_MESSAGE_WINDOW = 10000
+const FEE = 1.01
 
 class TransferHandler {
   constructor (main) {
@@ -11,8 +12,13 @@ class TransferHandler {
 
   onPlugin (prefix) {
     this.main.getPlugin(prefix).on('incoming_prepare', (transfer) => {
-      const destination = IlpPacket.deserializeIlpPayment(Buffer.from(transfer.ilp, 'base64'))
-      const onwardTransfer = this.main.quoter.findHop(destination.account, destination.amount)
+      const packet = IlpPacket.deserializeIlpPacket(Buffer.from(transfer.ilp, 'base64'))
+      const destinationAccount = packet.data.account
+      const destinationAmount = packet.data.amount // may be undefined
+      const onwardTransfer = this.main.quoter.findHop(destinationAccount, destinationAmount)
+      if (!onwardTransfer.amount) {
+         onwardTransfer.amount = Math.floor(parseInt(transfer.amount) * FEE).toString() // TODO: deal with exchange rates
+      }
       const onwardPlugin = this.main.getPlugin(onwardTransfer.ledger)
       this.outstanding[transfer.executionCondition] = transfer
       onwardPlugin.sendTransfer(Object.assign(onwardTransfer, {
