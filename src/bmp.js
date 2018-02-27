@@ -85,25 +85,18 @@ console.log('creating app!')
           lndUri: 'localhost:10009'
         }
       },
-      // btp18q1eth: {
-      //   relation: 'child',
-      //   assetScale: 6,
-      //   assetCode: 'ETH',
-      //   plugin: 'ilp-plugin-ethereum-asym-server',
-      //   options: {
-      //     wsOpts: {
-      //       server: servers[3]
-      //     },
-
-      //     // Max amount to be unsecured at any one time
-      //     maxBalance: 1000000
-      //   },
-      //   balance: {
-      //     maximum: 'Infinity',
-      //     settleThreshold: '1',
-      //     settleTo: '0'
-      //   }
-      // },
+      btp18q1eth: {
+        relation: 'child',
+        assetScale: 6,
+        assetCode: 'ETH',
+        plugin: 'ilp-plugin-ethereum-asym-server',
+        options: {
+          wsOpts: {
+            server: servers[3]
+          },
+          account: '0x5fb826c2afaf8ef331d7440ad9ef6eef2f4de0c2'
+        }
+      },
       httpHead: {
         relation: 'child',
         assetScale: 9,
