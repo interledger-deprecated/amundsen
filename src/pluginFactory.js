@@ -82,7 +82,7 @@ const HTTPS_PORT = 443
 // This function starts a TLS webserver on HTTPS_PORT, with on-the-fly LetsEncrypt cert registration.
 // It also starts a redirect server on HTTP_REDIRECT_PORT, which GreenLock uses for the ACME challenge.
 // Certificates and temporary files are stored in LE_ROOT
-function getLetsEncryptServers (domain, email, bmpPort) {
+function getLetsEncryptServers (domain, email, bmpBasePort, bmpLegacyPort) {
   let httpServer
   const le = LE.create({
     // server: 'staging',
@@ -127,7 +127,11 @@ function getLetsEncryptServers (domain, email, bmpPort) {
         res.end(WELCOME_TEXT)
       }), // SERVER_THAT_GETS_TO_SERVE_BTP = 0
       Promise.resolve(httpServer),
-      makeHttpsServer(certs, bmpPort, undefined) // third server is bmp server
+      makeHttpsServer(certs, bmpBasePort + 0, undefined), // third server is bmp server for BTP+none/stripe/flutterwave
+      makeHttpsServer(certs, bmpBasePort + 1, undefined), // fourth server is bmp server for BTP+XRP
+      makeHttpsServer(certs, bmpBasePort + 2, undefined), // fifth server is bmp server for BTP+LND
+      makeHttpsServer(certs, bmpBasePort + 3, undefined), // sixth server is bmp server for BTP+ETH
+      makeHttpsServer(certs, bmpLegacyPort, undefined) // extra legacy server for BTP+XRP on port 1801
     ])
   })
 }
@@ -141,48 +145,65 @@ function PluginFactory (config, onPlugin) {
 
 PluginFactory.prototype = {
   getServers () {
-    // case 1: use LetsEncrypt => [httpsMain, http, httpsBmp] 
+    // case 1: use LetsEncrypt => [httpsMain, http, httpsBmpNone, httpsBmpXrp, httpBmpLnd, httpEth] 
     // SERVER_THAT_GETS_TO_SERVE_BTP = 0
     if (this.config.tls) {
       this.myBaseUrl = 'wss://' + this.config.tls
       console.log('tls-ing it!', this.config.tls)
-      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`, this.config.bmpPort).then(servers => {
-        if (servers.length === 3) {
-          this._startBmp(servers[2])
+      return getLetsEncryptServers(this.config.tls, this.config.email || `letsencrypt+${this.config.tls}@gmail.com`, this.config.bmpBasePort, this.config.bmpLegacyPort).then(servers => {
+        if (servers.length === 7) {
+          this._startBmp([servers[2], servers[3], servers[4], servers[5], servers[6]])
         }
         return servers
       })
     }
 
-    // case 2: listen without TLS on a port => [httpMain, httpBmp]
+    // case 2: listen without TLS on a port => [httpMain, httpBmpNone, httpBmpXrp, httpBmpLnd, httpBmpEth]
     // SERVER_THAT_GETS_TO_SERVE_BTP = 0
     const promises = []
     if (typeof this.config.listen === 'number') {
-      const server = http.createServer((req, res) => {
+      const mainServer = http.createServer((req, res) => {
         res.end(WELCOME_TEXT)
       })
-      promises.push(new Promise(resolve => server.listen(this.config.listen, resolve(server))))
+      promises.push(new Promise(resolve, reject => mainServer.listen(this.config.listen, (err) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(bmpServer)
+        }
+      })))
       this.myBaseUrl = 'ws://localhost:' + this.config.listen
     }
 
-    if (typeof this.config.bmpPort === 'number') {
-      const server = http.createServer()
-      promises.push(new Promise(resolve => server.listen(this.config.bmpPort, resolve(server))).then(server => {
-        this._startBmp(server)
-        return server
-      }))
+    if (typeof this.config.bmpBasePort === 'number') {
+      function addBmpServer(port) {
+        const bmpServer = http.createServer()
+        promises.push(new Promise(resolve, reject => bmpServer.listen(port, (err) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(bmpServer)
+          }
+        })))
+      }
+      [
+        this.config.bmpBasePort + 0,
+        this.config.bmpBasePort + 1,
+        this.config.bmpBasePort + 2,
+        this.config.bmpBasePort + 3,
+        this.config.bmpLegacyPort].map(addBmpServer)
     }
     return Promise.all(promises)
   },
 
-  _startBmp (server) {
-    // console.log('starting bmp', server)
-    return Bmp.makeBmpPlugin(server).then(plugins => {
+  _startBmp (servers) {
+    // console.log('starting bmp', servers)
+    return Bmp.makeBmpPlugin(servers).then(plugins => {
       this.onPlugin(plugins.restOfAmundsen, Buffer.from([
         0, 0, 0, 0,
         0, 0, 0, 1
       ]))
-      server.on('request', (req, res) => {
+      servers[0].on('request', (req, res) => {
         // ILP-over-HTTP with headers is deprecated, going forward,
         // we will only support proper OER-encoded Interleder packets
         if (req.url === '/head') {

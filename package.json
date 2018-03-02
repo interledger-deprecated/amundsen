@@ -13,9 +13,12 @@
     "ilp-connector": "github:interledgerjs/ilp-connector",
     "ilp-packet": "^2.1.2",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum",
+    "ilp-plugin-ethereum-asym-server": "git+https://github.com/sharafian/ilp-plugin-ethereum-asym-server.git",
+    "ilp-plugin-lnd-asym-server": "github:interledgerjs/ilp-plugin-lnd-asym-server",
     "ilp-plugin-mini-accounts": "github:interledgerjs/ilp-plugin-mini-accounts#mj-sendMoney",
     "ilp-plugin-mirror-v1": "github:michielbdejong/ilp-plugin-mirror-v1",
     "ilp-plugin-payment-channel-framework": "github:interledgerjs/ilp-plugin-payment-channel-framework",
+    "ilp-plugin-xrp-asym-server": "github:interledgerjs/ilp-plugin-xrp-asym-server#mj-fix-package-lock",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow",
     "node-fetch": "^1.7.3",
     "uint64be": "^2.0.1"
