@@ -13,7 +13,7 @@
     "ilp-connector": "github:interledgerjs/ilp-connector",
     "ilp-packet": "^2.1.2",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum",
-    "ilp-plugin-ethereum-asym-server": "git+https://github.com/sharafian/ilp-plugin-ethereum-asym-server.git",
+    "ilp-plugin-ethereum-asym-server": "git+https://github.com/michielbdejong/ilp-plugin-ethereum-asym-server.git",
     "ilp-plugin-lnd-asym-server": "github:interledgerjs/ilp-plugin-lnd-asym-server",
     "ilp-plugin-mini-accounts": "github:interledgerjs/ilp-plugin-mini-accounts#mj-sendMoney",
     "ilp-plugin-mirror-v1": "github:michielbdejong/ilp-plugin-mirror-v1",
