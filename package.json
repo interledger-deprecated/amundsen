@@ -21,6 +21,7 @@
     "ilp-plugin-xrp-asym-server": "github:interledgerjs/ilp-plugin-xrp-asym-server#mj-fix-package-lock",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow",
     "node-fetch": "^1.7.3",
+    "truffle-hdwallet-provider": "0.0.3",
     "uint64be": "^2.0.1"
   },
   "devDependencies": {
