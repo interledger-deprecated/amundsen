@@ -10,6 +10,14 @@ $ ssh root@amundsen.michielbdejong.com # Ask Michiel, Evan, Dennis, Ben, or Stef
 >$ screen -rd amundsen # Amundsen didn't want to stay up under pm2 for some reason so now it's running in a screen
 ```
 
+# Configuration
+
+Amundsen needs a few environment variables:
+```sh
+export ETH_PROVIDER=https://rinkeby.infura.io/QIQwjA7rQvIVca6Z4Tjl
+export ETH_SECRET=ietah3IeZ0Zun4Se2daf3ieVia8Xeengahx8quo0
+```
+
 ## Ways to interact with Amundsen
 
 Amundsen can perform several tricks, and each of them can be accessed via one of more of its API interfaces:

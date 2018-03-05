@@ -1,5 +1,7 @@
 'use strict'
 const IlpConnector = require('ilp-connector')
+const HDWalletProvider = require('truffle-hdwallet-provider')
+const provider = new HDWalletProvider(process.env.ETH_SECRET, process.env.ETH_PROVIDER)
 
 module.exports.makeBmpPlugin = function (servers) {
 console.log('creating app!')
@@ -94,7 +96,8 @@ console.log('creating app!')
           wsOpts: {
             server: servers[3]
           },
-          account: '0x5fb826c2afaf8ef331d7440ad9ef6eef2f4de0c2'
+          account: '0x' + provider.address.substring(2).toLowerCase(),
+          provider
         }
       },
       httpHead: {
